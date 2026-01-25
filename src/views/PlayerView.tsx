@@ -1,7 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+
+// localStorage helpers for session persistence
+const STORAGE_KEY = "survyay_player";
+
+interface StoredSession {
+  playerId: string;
+  sessionId: string;
+  sessionCode: string;
+}
+
+function saveSession(playerId: Id<"players">, sessionId: Id<"sessions">, sessionCode: string) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ playerId, sessionId, sessionCode }));
+}
+
+function loadSession(): StoredSession | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored) as StoredSession;
+  } catch {
+    return null;
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem(STORAGE_KEY);
+}
 
 interface Props {
   onBack: () => void;
@@ -13,6 +40,18 @@ export function PlayerView({ onBack }: Props) {
   const [playerId, setPlayerId] = useState<Id<"players"> | null>(null);
   const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
   const [error, setError] = useState("");
+  const [isRestoring, setIsRestoring] = useState(true);
+
+  // Try to restore session from localStorage on mount
+  useEffect(() => {
+    const stored = loadSession();
+    if (stored) {
+      setPlayerId(stored.playerId as Id<"players">);
+      setSessionId(stored.sessionId as Id<"sessions">);
+      setJoinCode(stored.sessionCode);
+    }
+    setIsRestoring(false);
+  }, []);
 
   const getByCode = useQuery(
     api.sessions.getByCode,
@@ -53,6 +92,16 @@ export function PlayerView({ onBack }: Props) {
 
   const submitAnswer = useMutation(api.answers.submit);
 
+  // If restored session is invalid (player deleted, session gone), clear it
+  useEffect(() => {
+    if (!isRestoring && playerId && player === null) {
+      // Player no longer exists in DB - clear stored session
+      clearSession();
+      setPlayerId(null);
+      setSessionId(null);
+    }
+  }, [isRestoring, playerId, player]);
+
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -69,9 +118,18 @@ export function PlayerView({ onBack }: Props) {
       });
       setPlayerId(id);
       setSessionId(getByCode._id);
+      saveSession(id, getByCode._id, getByCode.code);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to join");
     }
+  }
+
+  function handleLeave() {
+    clearSession();
+    setPlayerId(null);
+    setSessionId(null);
+    setJoinCode("");
+    setPlayerName("");
   }
 
   async function handleAnswer(optionIndex: number) {
@@ -81,6 +139,15 @@ export function PlayerView({ onBack }: Props) {
       playerId,
       optionIndex,
     });
+  }
+
+  // Loading - checking for stored session
+  if (isRestoring) {
+    return (
+      <div className="player-view">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   // Not joined yet - show join form
@@ -117,12 +184,12 @@ export function PlayerView({ onBack }: Props) {
     return (
       <div className="player-view">
         <h2>Game Over!</h2>
-        <p>Your score: {player?.score ?? 0}</p>
+        <p>Your elevation: {player?.elevation ?? 0}m</p>
         <h3>Leaderboard</h3>
         <ol>
           {leaderboard?.map((p) => (
             <li key={p._id} className={p._id === playerId ? "you" : ""}>
-              {p.name}: {p.score} pts
+              {p.name}: {p.elevation}m {p.elevation >= 1000 ? "⛰️ Summit!" : ""}
             </li>
           ))}
         </ol>
@@ -146,6 +213,9 @@ export function PlayerView({ onBack }: Props) {
             </li>
           ))}
         </ul>
+        <button onClick={handleLeave} style={{ background: "#ef4444", marginTop: 20 }}>
+          Leave Session
+        </button>
       </div>
     );
   }
@@ -155,7 +225,7 @@ export function PlayerView({ onBack }: Props) {
     <div className="player-view">
       <div className="score-bar">
         <span>{player?.name}</span>
-        <span>{player?.score ?? 0} pts</span>
+        <span>⛰️ {player?.elevation ?? 0}m</span>
       </div>
 
       {currentQuestion ? (

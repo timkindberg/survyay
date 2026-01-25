@@ -1,8 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-
-const BASE_POINTS = 100;
-const SPEED_BONUS_MAX = 50; // Max bonus for fast answers
+import { calculateElevationGain, SUMMIT } from "../lib/elevation";
 
 export const submit = mutation({
   args: {
@@ -17,6 +15,10 @@ export const submit = mutation({
     const player = await ctx.db.get(args.playerId);
     if (!player) throw new Error("Player not found");
 
+    // Get session for question start time
+    const session = await ctx.db.get(question.sessionId);
+    if (!session) throw new Error("Session not found");
+
     // Check if already answered
     const existing = await ctx.db
       .query("answers")
@@ -30,6 +32,9 @@ export const submit = mutation({
     }
 
     const answeredAt = Date.now();
+    const answerTime = session.questionStartedAt
+      ? answeredAt - session.questionStartedAt
+      : 10000; // Default to 10s if no start time
 
     await ctx.db.insert("answers", {
       questionId: args.questionId,
@@ -38,35 +43,43 @@ export const submit = mutation({
       answeredAt,
     });
 
-    // Calculate points if there's a correct answer (quiz mode)
+    // Calculate elevation if there's a correct answer
     if (question.correctOptionIndex !== undefined) {
       if (args.optionIndex === question.correctOptionIndex) {
-        // Get all answers for this question to calculate speed bonus
-        const allAnswers = await ctx.db
-          .query("answers")
-          .withIndex("by_question", (q) => q.eq("questionId", args.questionId))
-          .collect();
-
-        // Speed bonus: earlier answers get more points
-        // Simple formula: bonus decreases with each answer
-        const answerPosition = allAnswers.length;
-        const speedBonus = Math.max(0, SPEED_BONUS_MAX - answerPosition * 5);
-        const points = BASE_POINTS + speedBonus;
+        const elevationGain = calculateElevationGain(answerTime);
+        const newElevation = Math.min(SUMMIT, player.elevation + elevationGain);
 
         await ctx.db.patch(args.playerId, {
-          score: player.score + points,
+          elevation: newElevation,
         });
 
-        return { correct: true, points };
+        return {
+          correct: true,
+          elevationGain,
+          newElevation,
+          reachedSummit: newElevation >= SUMMIT,
+        };
       }
-      return { correct: false, points: 0 };
+      // Wrong answer - no elevation gain, stay at current level
+      return {
+        correct: false,
+        elevationGain: 0,
+        newElevation: player.elevation,
+        reachedSummit: false,
+      };
     }
 
-    // For poll mode (no correct answer), everyone gets participation points
+    // For poll mode (no correct answer), small elevation for participation
+    const newElevation = Math.min(SUMMIT, player.elevation + 10);
     await ctx.db.patch(args.playerId, {
-      score: player.score + 10,
+      elevation: newElevation,
     });
-    return { correct: null, points: 10 };
+    return {
+      correct: null,
+      elevationGain: 10,
+      newElevation,
+      reachedSummit: newElevation >= SUMMIT,
+    };
   },
 });
 

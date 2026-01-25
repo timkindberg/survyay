@@ -8,6 +8,7 @@ export default defineSchema({
     hostId: v.string(), // Anonymous host identifier
     status: v.union(v.literal("lobby"), v.literal("active"), v.literal("finished")),
     currentQuestionIndex: v.number(), // -1 means no question shown yet
+    questionStartedAt: v.optional(v.number()), // When current question was shown (for speed calc)
     createdAt: v.number(),
   }).index("by_code", ["code"]),
 
@@ -25,7 +26,7 @@ export default defineSchema({
   players: defineTable({
     sessionId: v.id("sessions"),
     name: v.string(),
-    score: v.number(),
+    elevation: v.number(), // 0-1000m, summit at 1000
   }).index("by_session", ["sessionId"]),
 
   // Player answers

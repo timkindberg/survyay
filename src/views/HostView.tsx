@@ -55,7 +55,7 @@ export function HostView({ onBack }: Props) {
         <ul>
           {players?.map((p) => (
             <li key={p._id}>
-              {p.name} - {p.score} pts
+              {p.name} - {p.elevation}m
             </li>
           ))}
         </ul>

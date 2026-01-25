@@ -89,11 +89,18 @@ Players are blob creatures racing to climb a mountain. Each question = choosing 
 ## Project Structure
 
 ```
+lib/                      # Shared code (imported by both src/ and convex/)
+└── elevation.ts          # Elevation/scoring calculations
+
 src/
 ├── main.tsx              # Entry point with Convex provider
 ├── App.tsx               # Mode selection (host/player)
 ├── index.css             # Global styles
-├── vite-env.d.ts         # Vite types
+├── lib/
+│   └── blobGenerator.ts  # Deterministic avatar generation
+├── components/
+│   ├── Blob.tsx          # SVG blob renderer
+│   └── BlobGallery.tsx   # Blob preview gallery
 └── views/
     ├── HostView.tsx      # Host session management
     └── PlayerView.tsx    # Player join and gameplay
@@ -103,8 +110,29 @@ convex/
 ├── sessions.ts           # Session CRUD and state management
 ├── players.ts            # Player join, scores, elevation
 ├── questions.ts          # Question CRUD
-└── answers.ts            # Answer submission and scoring
+└── answers.ts            # Answer submission and scoring (imports from lib/)
+
+tests/
+├── unit/                 # Vitest unit tests
+│   ├── blobGenerator.test.ts
+│   └── elevation.test.ts
+├── convex/               # Convex backend tests
+│   └── answers.test.ts
+└── e2e/                  # Playwright E2E tests
+    └── smoke.test.ts
 ```
+
+### Shared Code Architecture
+
+Code that needs to be used by both frontend (`src/`) and backend (`convex/`) lives in the root `lib/` folder. This prevents cyclic dependencies:
+
+```
+lib/ ←── convex/ imports from here
+  ↑
+  └── src/ can also import from here
+```
+
+**Rule**: `convex/` and `src/` can both import from `lib/`, but `lib/` should never import from either.
 
 ## Commands
 
@@ -113,7 +141,61 @@ bun run dev          # Start Vite dev server
 bun run convex:dev   # Start Convex dev server
 bun run build        # Production build
 bun run preview      # Preview production build
+bun run test         # Run unit tests in watch mode
+bun run test:run     # Run unit tests once
+bun run test:e2e     # Run Playwright E2E tests
 ```
+
+## Testing
+
+### Test Types
+
+| Type | Framework | Location | Purpose |
+|------|-----------|----------|---------|
+| Unit | Vitest | `tests/unit/` | Pure functions, utilities, isolated logic |
+| Convex | convex-test + Vitest | `tests/convex/` | Backend mutations, queries, database logic |
+| E2E | Playwright | `tests/e2e/` | Full browser integration, user flows |
+
+### When to Write Tests
+
+- **Always test**: Core game logic (elevation calculation, scoring), deterministic generators (blobs), Convex mutations that affect game state
+- **Consider testing**: Complex UI interactions, edge cases discovered during development
+- **Skip testing**: Simple pass-through components, one-off styling, prototypes being actively iterated
+
+### When to Run Tests
+
+- **Before committing**: Run `bun run test:run` to catch regressions
+- **After Convex changes**: Run `bun run test:run tests/convex/` to verify backend logic
+- **Before PR/deploy**: Run both `bun run test:run && bun run test:e2e`
+
+### Test Examples
+
+```typescript
+// Unit test (Vitest) - tests/unit/elevation.test.ts
+import { calculateElevationGain } from "../../src/lib/elevation";
+test("fast answers get max elevation", () => {
+  expect(calculateElevationGain(1000)).toBe(100);
+});
+
+// Convex test - tests/convex/answers.test.ts
+import { convexTest } from "convex-test";
+const t = convexTest(schema, modules);
+const result = await t.mutation(api.answers.submit, { ... });
+
+// E2E test (Playwright) - tests/e2e/smoke.test.ts
+test("home page loads", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Survyay!" })).toBeVisible();
+});
+```
+
+## Task Management
+
+When asked to do work that involves multiple steps or non-trivial implementation:
+- **Create tasks** using `TaskCreate` to track progress
+- **Update task status** to `in_progress` when starting, `completed` when done
+- **Set dependencies** between tasks using `addBlockedBy` when order matters
+- Tasks help maintain context across conversation and show progress to the user
 
 ## Development Notes
 
@@ -130,8 +212,9 @@ bun run preview      # Preview production build
 - [x] Implement session/room joining
 - [x] Add question/answer flow
 - [x] Add scoring system
-- [ ] Replace points with elevation system
-- [ ] Create blob creature avatar generator
+- [x] Replace points with elevation system
+- [x] Create blob creature avatar generator
+- [x] Set up testing infrastructure (Vitest + Playwright)
 - [ ] Build mountain visualization component
 - [ ] Add rope climbing animations
 - [ ] Implement rope cutting animation

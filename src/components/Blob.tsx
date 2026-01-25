@@ -366,6 +366,58 @@ function getShapeDimensions(shape: BlobShape): { width: number; headWidth: numbe
   }
 }
 
+// Get the actual body edge positions at a given Y coordinate for each shape
+// This is used to position accessories like headphones and bandanas that need to wrap around the body
+function getBodyEdges(shape: BlobShape, y: number): { left: number; right: number } {
+  switch (shape) {
+    case "wide": {
+      // Body goes from x=5 to x=95, widest in the middle (y~58)
+      // At top (y=25) it's narrower, at y=50 it's widest
+      const t = Math.max(0, Math.min(1, (y - 25) / 35)); // 0 at y=25, 1 at y=60
+      const halfWidth = 30 + t * 15; // 30 at top, up to 45 at widest
+      return { left: 50 - halfWidth, right: 50 + halfWidth };
+    }
+    case "ghost": {
+      // Body from x=15 to x=85
+      const t = Math.max(0, Math.min(1, (y - 10) / 40)); // 0 at top, 1 at y=50
+      const halfWidth = 20 + t * 15; // starts narrow, gets wider
+      return { left: 50 - halfWidth, right: 50 + halfWidth };
+    }
+    case "round": {
+      // Body from x=10 to x=90
+      const halfWidth = 35;
+      return { left: 50 - halfWidth, right: 50 + halfWidth };
+    }
+    case "tall": {
+      // Body from x=22 to x=78
+      const halfWidth = 26;
+      return { left: 50 - halfWidth, right: 50 + halfWidth };
+    }
+    case "bean": {
+      // Asymmetric - centered around x=45
+      return { left: 18, right: 78 };
+    }
+    case "pear": {
+      // Narrow at top, wide at bottom
+      const t = Math.max(0, Math.min(1, (y - 10) / 60));
+      const halfWidth = 20 + t * 10;
+      return { left: 50 - halfWidth, right: 50 + halfWidth };
+    }
+    case "square": {
+      // Body from x=22 to x=78
+      return { left: 24, right: 76 };
+    }
+    case "droplet": {
+      // Narrow at top, wider at bottom
+      const t = Math.max(0, Math.min(1, (y - 8) / 60));
+      const halfWidth = 12 + t * 18;
+      return { left: 50 - halfWidth, right: 50 + halfWidth };
+    }
+    default:
+      return { left: 20, right: 80 };
+  }
+}
+
 interface AccessoryProps {
   type: Accessory;
   bodyShape: BlobShape;
@@ -410,17 +462,23 @@ function AccessoryComponent({ type, bodyShape, topY, eyePositions }: AccessoryPr
     }
 
     case "bandana": {
-      const bw = hw * 0.7; // bandana width from center
+      // Use actual body edges at the bandana Y position
+      const bandanaY = topY + 12;
+      const edges = getBodyEdges(bodyShape, bandanaY);
+      // Inset a bit from the edges so it looks like it's wrapping around
+      const leftX = edges.left + 4;
+      const rightX = edges.right - 4;
       return (
         <g>
           <path
-            d={`M${centerX - bw} ${topY + 12} Q${centerX} ${topY + 4} ${centerX + bw} ${topY + 12}`}
+            d={`M${leftX} ${bandanaY} Q${centerX} ${topY + 4} ${rightX} ${bandanaY}`}
             fill="none"
             stroke="#E74C3C"
             strokeWidth="5"
             strokeLinecap="round"
           />
-          <path d={`M${centerX + bw - 3} ${topY + 10} L${centerX + bw + 5} ${topY + 18} L${centerX + bw + 2} ${topY + 23}`} fill="#E74C3C" />
+          {/* Knot tails on the right side */}
+          <path d={`M${rightX - 3} ${bandanaY - 2} L${rightX + 5} ${bandanaY + 6} L${rightX + 2} ${bandanaY + 11}`} fill="#E74C3C" />
         </g>
       );
     }
@@ -465,23 +523,29 @@ function AccessoryComponent({ type, bodyShape, topY, eyePositions }: AccessoryPr
     }
 
     case "headphones": {
-      // Position ear cups at the outer edges of the head, at eye level
-      const earCupX = (rx - lx) / 2 + 8; // distance from center to ear cup
-      const earSize = Math.min(10, hw * 0.28);
+      // Position ear cups at the actual body edges at eye level
+      const edges = getBodyEdges(bodyShape, ly);
+      const earSize = Math.min(12, hw * 0.32);
       const bandY = topY - 4;
+      // Ear cups must be outside BOTH the body edges AND the eyes
+      // Use whichever puts the cups further out, with generous padding from eyes
+      const leftEdge = Math.min(edges.left, lx - 12); // 12px padding from eye
+      const rightEdge = Math.max(edges.right, rx + 12);
+      const leftCupX = leftEdge - 2;
+      const rightCupX = rightEdge + 2;
       return (
         <g>
-          {/* Headband */}
+          {/* Headband - arcs over the top of the head */}
           <path
-            d={`M${centerX - earCupX} ${ly} Q${centerX - earCupX - 2} ${bandY} ${centerX} ${bandY - 2} Q${centerX + earCupX + 2} ${bandY} ${centerX + earCupX} ${ry}`}
+            d={`M${leftCupX + earSize * 0.5} ${ly} Q${leftCupX} ${bandY} ${centerX} ${bandY - 2} Q${rightCupX} ${bandY} ${rightCupX - earSize * 0.5} ${ry}`}
             fill="none"
             stroke="#2C3E50"
             strokeWidth="3"
           />
-          {/* Left ear cup - positioned outside the left eye */}
-          <rect x={lx - earSize - 6} y={ly - earSize * 0.6} width={earSize} height={earSize * 1.5} rx="3" fill="#2C3E50" />
-          {/* Right ear cup - positioned outside the right eye */}
-          <rect x={rx + 6} y={ry - earSize * 0.6} width={earSize} height={earSize * 1.5} rx="3" fill="#2C3E50" />
+          {/* Left ear cup - outside left eye/body edge */}
+          <rect x={leftCupX} y={ly - earSize * 0.6} width={earSize} height={earSize * 1.5} rx="3" fill="#2C3E50" />
+          {/* Right ear cup - outside right eye/body edge */}
+          <rect x={rightCupX - earSize} y={ry - earSize * 0.6} width={earSize} height={earSize * 1.5} rx="3" fill="#2C3E50" />
         </g>
       );
     }

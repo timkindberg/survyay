@@ -81,6 +81,7 @@ export const start = mutation({
     await ctx.db.patch(args.sessionId, {
       status: "active",
       currentQuestionIndex: 0,
+      questionStartedAt: Date.now(),
     });
   },
 });
@@ -105,7 +106,10 @@ export const nextQuestion = mutation({
       return { finished: true };
     }
 
-    await ctx.db.patch(args.sessionId, { currentQuestionIndex: nextIndex });
+    await ctx.db.patch(args.sessionId, {
+      currentQuestionIndex: nextIndex,
+      questionStartedAt: Date.now(),
+    });
     return { finished: false };
   },
 });

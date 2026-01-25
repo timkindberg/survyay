@@ -25,7 +25,7 @@ export const join = mutation({
     const playerId = await ctx.db.insert("players", {
       sessionId: args.sessionId,
       name: args.name.trim(),
-      score: 0,
+      elevation: 0,
     });
 
     return playerId;
@@ -57,22 +57,27 @@ export const getLeaderboard = query({
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .collect();
 
-    // Sort by score descending
-    return players.sort((a, b) => b.score - a.score);
+    // Sort by elevation descending (highest climbers first)
+    return players.sort((a, b) => b.elevation - a.elevation);
   },
 });
 
-export const addScore = mutation({
+export const addElevation = mutation({
   args: {
     playerId: v.id("players"),
-    points: v.number(),
+    meters: v.number(),
   },
   handler: async (ctx, args) => {
     const player = await ctx.db.get(args.playerId);
     if (!player) throw new Error("Player not found");
 
+    // Cap at summit (1000m)
+    const newElevation = Math.min(1000, player.elevation + args.meters);
+
     await ctx.db.patch(args.playerId, {
-      score: player.score + args.points,
+      elevation: newElevation,
     });
+
+    return { elevation: newElevation, reachedSummit: newElevation >= 1000 };
   },
 });
