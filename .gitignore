@@ -9,19 +9,25 @@ dist/
 .env.local
 .env.*.local
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
 # Logs
 *.log
 npm-debug.log*
 
-# Test coverage
-coverage/
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Convex
+.convex/
+
+# Claude Code
+.claude/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Vite
+*.local
