@@ -32,5 +32,7 @@ npm-debug.log*
 # Vite
 *.local
 
+test-results/
+.playwright-mcp/
 .playwright-mcp/test-results/
 playwright-report/
