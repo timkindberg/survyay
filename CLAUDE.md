@@ -100,7 +100,8 @@ src/
 │   └── blobGenerator.ts  # Deterministic avatar generation
 ├── components/
 │   ├── Blob.tsx          # SVG blob renderer
-│   └── BlobGallery.tsx   # Blob preview gallery
+│   ├── BlobGallery.tsx   # Blob preview gallery
+│   └── Mountain.tsx      # Mountain visualization with players
 └── views/
     ├── HostView.tsx      # Host session management
     └── PlayerView.tsx    # Player join and gameplay
@@ -215,10 +216,10 @@ When asked to do work that involves multiple steps or non-trivial implementation
 - [x] Replace points with elevation system
 - [x] Create blob creature avatar generator
 - [x] Set up testing infrastructure (Vitest + Playwright)
-- [ ] Build mountain visualization component
-- [ ] Add rope climbing animations
+- [x] Build mountain visualization component
+- [x] Add rope climbing animations
 - [ ] Implement rope cutting animation
-- [ ] Add sound effects system
+- [x] Add sound effects system
 - [ ] Polish host view (full chaos mode)
 - [ ] Polish player view (reactive chaos)
-- [ ] Add checkpoints/camps visual markers
+- [x] Add checkpoints/camps visual markers

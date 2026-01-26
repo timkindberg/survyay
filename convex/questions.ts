@@ -64,7 +64,10 @@ export const getCurrentQuestion = query({
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .collect();
 
-    const sorted = questions.sort((a, b) => a.order - b.order);
+    // Filter to only enabled questions (undefined or true means enabled)
+    const sorted = questions
+      .filter((q) => q.enabled !== false)
+      .sort((a, b) => a.order - b.order);
     return sorted[session.currentQuestionIndex] ?? null;
   },
 });
@@ -108,5 +111,102 @@ export const update = mutation({
     if (args.timeLimit !== undefined) updates.timeLimit = args.timeLimit;
 
     await ctx.db.patch(args.questionId, updates);
+  },
+});
+
+// Check if a question has been answered (is "completed")
+export const hasAnswers = query({
+  args: { questionId: v.id("questions") },
+  handler: async (ctx, args) => {
+    const answers = await ctx.db
+      .query("answers")
+      .withIndex("by_question", (q) => q.eq("questionId", args.questionId))
+      .first();
+    return answers !== null;
+  },
+});
+
+// Reorder questions by swapping positions
+export const reorder = mutation({
+  args: {
+    questionId: v.id("questions"),
+    direction: v.union(v.literal("up"), v.literal("down")),
+  },
+  handler: async (ctx, args) => {
+    const question = await ctx.db.get(args.questionId);
+    if (!question) throw new Error("Question not found");
+
+    const session = await ctx.db.get(question.sessionId);
+    if (!session) throw new Error("Session not found");
+
+    // Check if question has answers (is completed)
+    const answers = await ctx.db
+      .query("answers")
+      .withIndex("by_question", (q) => q.eq("questionId", args.questionId))
+      .first();
+    if (answers) {
+      throw new Error("Cannot reorder questions that have already been answered");
+    }
+
+    // Get all questions in the session sorted by order
+    const questions = await ctx.db
+      .query("questions")
+      .withIndex("by_session", (q) => q.eq("sessionId", question.sessionId))
+      .collect();
+    const sorted = questions.sort((a, b) => a.order - b.order);
+
+    // Find current question index
+    const currentIndex = sorted.findIndex((q) => q._id === args.questionId);
+    if (currentIndex === -1) throw new Error("Question not found in session");
+
+    // Calculate target index
+    const targetIndex = args.direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+    // Check bounds
+    if (targetIndex < 0 || targetIndex >= sorted.length) {
+      throw new Error("Cannot move question further in that direction");
+    }
+
+    const targetQuestion = sorted[targetIndex];
+    if (!targetQuestion) throw new Error("Target question not found");
+
+    // Check if target question has answers (is completed)
+    const targetAnswers = await ctx.db
+      .query("answers")
+      .withIndex("by_question", (q) => q.eq("questionId", targetQuestion._id))
+      .first();
+    if (targetAnswers) {
+      throw new Error("Cannot reorder past questions that have already been answered");
+    }
+
+    // Swap the order values
+    const currentOrder = question.order;
+    const targetOrder = targetQuestion.order;
+
+    await ctx.db.patch(args.questionId, { order: targetOrder });
+    await ctx.db.patch(targetQuestion._id, { order: currentOrder });
+  },
+});
+
+// Toggle enabled state for a question
+export const setEnabled = mutation({
+  args: {
+    questionId: v.id("questions"),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const question = await ctx.db.get(args.questionId);
+    if (!question) throw new Error("Question not found");
+
+    // Check if question has answers (is completed)
+    const answers = await ctx.db
+      .query("answers")
+      .withIndex("by_question", (q) => q.eq("questionId", args.questionId))
+      .first();
+    if (answers) {
+      throw new Error("Cannot toggle questions that have already been answered");
+    }
+
+    await ctx.db.patch(args.questionId, { enabled: args.enabled });
   },
 });

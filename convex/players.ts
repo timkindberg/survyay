@@ -58,7 +58,7 @@ export const getLeaderboard = query({
       .collect();
 
     // Sort by elevation descending (highest climbers first)
-    return players.sort((a, b) => b.elevation - a.elevation);
+    return players.sort((a, b) => (b.elevation ?? 0) - (a.elevation ?? 0));
   },
 });
 
@@ -72,12 +72,40 @@ export const addElevation = mutation({
     if (!player) throw new Error("Player not found");
 
     // Cap at summit (1000m)
-    const newElevation = Math.min(1000, player.elevation + args.meters);
+    const currentElevation = player.elevation ?? 0;
+    const newElevation = Math.min(1000, currentElevation + args.meters);
 
     await ctx.db.patch(args.playerId, {
       elevation: newElevation,
     });
 
     return { elevation: newElevation, reachedSummit: newElevation >= 1000 };
+  },
+});
+
+// Heartbeat for presence tracking - called periodically by client
+export const heartbeat = mutation({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, args) => {
+    const player = await ctx.db.get(args.playerId);
+    if (!player) return; // Silently ignore if player doesn't exist
+
+    await ctx.db.patch(args.playerId, { lastSeenAt: Date.now() });
+  },
+});
+
+// Threshold for considering a player "active" (15 seconds)
+export const PRESENCE_TIMEOUT_MS = 15000;
+
+// Disconnect mutation - marks player as immediately inactive
+// Called via HTTP endpoint on page unload for instant disconnect detection
+export const disconnect = mutation({
+  args: { playerId: v.id("players") },
+  handler: async (ctx, args) => {
+    const player = await ctx.db.get(args.playerId);
+    if (!player) return; // Silently ignore if player doesn't exist
+
+    // Setting lastSeenAt to 0 immediately marks the player as inactive
+    await ctx.db.patch(args.playerId, { lastSeenAt: 0 });
   },
 });
