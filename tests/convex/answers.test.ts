@@ -851,7 +851,10 @@ describe("answers.getRopeClimbingState", () => {
     const player2 = await t.mutation(api.players.join, { sessionId, name: "Bob" });
     const player3 = await t.mutation(api.players.join, { sessionId, name: "Charlie" });
 
-    // Only Alice and Bob send heartbeats (Charlie's tab is "closed")
+    // Charlie's tab is "closed" - explicitly disconnect them
+    await t.mutation(api.players.disconnect, { playerId: player3 });
+
+    // Alice and Bob send heartbeats (though they're already active from joining)
     await t.mutation(api.players.heartbeat, { playerId: player1 });
     await t.mutation(api.players.heartbeat, { playerId: player2 });
 

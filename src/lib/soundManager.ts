@@ -1,5 +1,5 @@
 /**
- * Sound Manager for Survyay!
+ * Sound Manager for Surv-Yay!
  *
  * Uses Web Audio API for low-latency sound playback.
  * All sounds are generated procedurally using oscillators and noise.

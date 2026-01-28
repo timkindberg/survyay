@@ -12,6 +12,8 @@ import { MuteToggle } from "../components/MuteToggle";
 import type { RopeClimbingState } from "../../lib/ropeTypes";
 import { Blob } from "../components/Blob";
 import { generateBlob } from "../lib/blobGenerator";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { getFriendlyErrorMessage } from "../lib/errorMessages";
 
 // sessionStorage helpers for session persistence
 // Using sessionStorage so each tab/window is an independent player
@@ -153,9 +155,10 @@ export function PlayerView({ onBack, initialCode }: Props) {
   // Track if timer has expired locally
   const [timerExpired, setTimerExpired] = useState(false);
 
-  // Reset timerExpired when question changes
+  // Reset timerExpired and answerError when question changes
   useEffect(() => {
     setTimerExpired(false);
+    setAnswerError(null);
   }, [currentQuestion?._id]);
 
   // If restored session is invalid (player deleted, session gone), clear it
@@ -173,7 +176,7 @@ export function PlayerView({ onBack, initialCode }: Props) {
     setError("");
 
     if (!getByCode) {
-      setError("Session not found");
+      setError("Game not found. Check the code and try again.");
       return;
     }
 
@@ -186,7 +189,7 @@ export function PlayerView({ onBack, initialCode }: Props) {
       setSessionId(getByCode._id);
       saveSession(id, getByCode._id, getByCode.code);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to join");
+      setError(getFriendlyErrorMessage(err));
     }
   }
 
@@ -198,17 +201,25 @@ export function PlayerView({ onBack, initialCode }: Props) {
     setPlayerName("");
   }
 
+  // Track answer submission error separately (for toast display during gameplay)
+  const [answerError, setAnswerError] = useState<string | null>(null);
+
   async function handleAnswer(optionIndex: number) {
     if (!currentQuestion || !playerId) return;
 
     // Play boop sound immediately on answer submit
     play("boop");
 
-    await submitAnswer({
-      questionId: currentQuestion._id,
-      playerId,
-      optionIndex,
-    });
+    try {
+      await submitAnswer({
+        questionId: currentQuestion._id,
+        playerId,
+        optionIndex,
+      });
+      setAnswerError(null);
+    } catch (err) {
+      setAnswerError(getFriendlyErrorMessage(err));
+    }
   }
 
   // Play reveal sounds when transitioning to "revealed" phase (player plays only THEIR sounds)
@@ -320,14 +331,17 @@ export function PlayerView({ onBack, initialCode }: Props) {
   if (!playerId || !sessionId) {
     return (
       <div className="player-view">
-        <button onClick={onBack}>← Back</button>
+        <button onClick={onBack}>- Back</button>
         <h2>Join a Session</h2>
         <form onSubmit={handleJoin}>
           <input
             type="text"
             placeholder="Join Code (e.g. ABCD)"
             value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            onChange={(e) => {
+              setJoinCode(e.target.value.toUpperCase());
+              setError(""); // Clear error when user types
+            }}
             maxLength={4}
           />
           <input
@@ -335,9 +349,16 @@ export function PlayerView({ onBack, initialCode }: Props) {
             type="text"
             placeholder="Your Name"
             value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
+            onChange={(e) => {
+              setPlayerName(e.target.value);
+              setError(""); // Clear error when user types
+            }}
           />
-          {error && <p className="error">{error}</p>}
+          <ErrorMessage
+            message={error}
+            onDismiss={() => setError("")}
+            variant="inline"
+          />
           <button type="submit" disabled={!getByCode || !playerName.trim()}>
             Join
           </button>
@@ -421,6 +442,14 @@ export function PlayerView({ onBack, initialCode }: Props) {
 
   return (
     <div className="player-view">
+      {/* Answer submission error toast */}
+      <ErrorMessage
+        message={answerError}
+        onDismiss={() => setAnswerError(null)}
+        variant="toast"
+        autoDismissMs={4000}
+      />
+
       <div className="score-bar">
         <span>{player?.name}</span>
         <span>{player?.elevation ?? 0}m</span>

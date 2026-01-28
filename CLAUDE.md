@@ -1,4 +1,4 @@
-# Survyay!
+# Surv-Yay!
 
 A fun real-time survey/quiz game for teams and events. Players climb a mountain by answering questions correctly - pick the right rope to ascend, pick wrong and watch it get cut!
 
@@ -186,7 +186,7 @@ const result = await t.mutation(api.answers.submit, { ... });
 // E2E test (Playwright) - tests/e2e/smoke.test.ts
 test("home page loads", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Survyay!" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Surv-Yay!" })).toBeVisible();
 });
 ```
 

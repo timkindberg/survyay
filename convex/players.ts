@@ -1,6 +1,13 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Helper to check if a player is currently active based on heartbeat
+function isPlayerActive(player: { lastSeenAt?: number }): boolean {
+  if (!player.lastSeenAt) return false; // Never seen = inactive
+  if (player.lastSeenAt === 0) return false; // Explicitly disconnected
+  return Date.now() - player.lastSeenAt < PRESENCE_TIMEOUT_MS;
+}
+
 export const join = mutation({
   args: {
     sessionId: v.id("sessions"),
@@ -11,21 +18,33 @@ export const join = mutation({
     if (!session) throw new Error("Session not found");
     if (session.status === "finished") throw new Error("Game has ended");
 
-    // Check for duplicate names in session
+    const trimmedName = args.name.trim();
+
+    // Check for existing player with same name in session
     const existing = await ctx.db
       .query("players")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-      .filter((q) => q.eq(q.field("name"), args.name))
+      .filter((q) => q.eq(q.field("name"), trimmedName))
       .first();
 
     if (existing) {
-      throw new Error("Name already taken in this session");
+      // If existing player is still active, reject the join
+      if (isPlayerActive(existing)) {
+        throw new Error("Name already taken in this session");
+      }
+
+      // Existing player is inactive - reactivate them (allows rejoin/refresh scenarios)
+      // This preserves their elevation/progress
+      await ctx.db.patch(existing._id, { lastSeenAt: Date.now() });
+      return existing._id;
     }
 
+    // No existing player with this name - create new one
     const playerId = await ctx.db.insert("players", {
       sessionId: args.sessionId,
-      name: args.name.trim(),
+      name: trimmedName,
       elevation: 0,
+      lastSeenAt: Date.now(),
     });
 
     return playerId;

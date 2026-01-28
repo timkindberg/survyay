@@ -9,7 +9,7 @@ import { generateBlob } from "../lib/blobGenerator";
 import { SUMMIT } from "../../lib/elevation";
 import type { RopeClimbingState } from "../../lib/ropeTypes";
 import { useSoundManager } from "../hooks/useSoundManager";
-import type { SoundType } from "../lib/soundManager";
+import { playSound } from "../lib/soundManager";
 
 interface Props {
   sessionCode: string;
@@ -158,52 +158,9 @@ export function SpectatorView({ sessionCode, onBack }: Props) {
     prevSessionPhaseRef.current = currentPhase;
   }, [isPreGamePhase, session?.status, players?.length, play, playChitters]);
 
-  // Track which blob is currently "speaking" (for visual animation)
-  const [speakingPlayerId, setSpeakingPlayerId] = useState<string | null>(null);
-
-  // Play ambient blob sounds in the lobby while waiting
-  const isLobby = session?.status === "lobby";
-  const playerCount = players?.length ?? 0;
-  useEffect(() => {
-    if (!isLobby || playerCount === 0 || !players) return;
-
-    // Schedule the next ambient sound with highly randomized timing
-    // Wide range: 800-5000ms for truly spontaneous feel
-    // More players = slightly more frequent sounds (but still highly varied)
-    const scheduleNextSound = () => {
-      // More players = slightly more frequent sounds (but cap at reasonable rate)
-      // With 1 player: 1500-5000ms, with 10+ players: 800-4000ms
-      const playerFactor = Math.min(playerCount, 10) / 10; // 0-1 range
-      const minInterval = 1500 - (playerFactor * 700); // 1500ms down to 800ms
-      const maxInterval = 5000 - (playerFactor * 1000); // 5000ms down to 4000ms
-      const interval = minInterval + Math.random() * (maxInterval - minInterval);
-      return interval;
-    };
-
-    let timeoutId: number;
-
-    const playAmbientSound = () => {
-      // Pick a random blob to "speak"
-      const randomPlayer = players[Math.floor(Math.random() * players.length)];
-      if (randomPlayer) {
-        setSpeakingPlayerId(randomPlayer._id);
-        // Clear the speaking state after animation duration
-        setTimeout(() => setSpeakingPlayerId(null), 400);
-      }
-
-      play("blobAmbient");
-      // Schedule next sound with new random interval
-      timeoutId = window.setTimeout(playAmbientSound, scheduleNextSound());
-    };
-
-    // Start the ambient sound loop after a short initial delay
-    timeoutId = window.setTimeout(playAmbientSound, scheduleNextSound());
-
-    // Cleanup: clear timeout when leaving lobby or unmounting
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [isLobby, playerCount, players, play]);
+  // Track which blobs have already played their appear animation
+  // This prevents the appear animation from replaying when blob state changes
+  const appearedBlobsRef = useRef<Set<string>>(new Set());
 
   // Session not found
   if (session === null) {
@@ -282,24 +239,25 @@ export function SpectatorView({ sessionCode, onBack }: Props) {
         {/* Animated blob avatars in safe zones */}
         {players && players.length > 0 && (
           <div className="spectator-lobby-blobs">
-            {players.map((player, index) => (
-              <div
-                key={player._id}
-                className={`lobby-blob ${getIdleAnimation(player.name)} ${getLobbyBlobPosition(index, players.length)}${speakingPlayerId === player._id ? " blob-speaking" : ""}`}
-                style={getLobbyBlobStyle(index, players.length)}
-              >
-                <Blob
-                  config={generateBlob(player.name)}
-                  size={getBlobSize(players.length)}
-                  state="idle"
+            {players.map((player, index) => {
+              // Track if this blob has appeared before
+              const hasAppeared = appearedBlobsRef.current.has(player._id);
+
+              return (
+                <LobbyBlob
+                  key={player._id}
+                  player={player}
+                  index={index}
+                  totalPlayers={players.length}
+                  hasAppeared={hasAppeared}
+                  onAppeared={() => appearedBlobsRef.current.add(player._id)}
                 />
-                <span className="lobby-blob-name">{player.name}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
-        <h1 className="spectator-title">Survyay!</h1>
+        <h1 className="spectator-title">Surv-Yay!</h1>
         <div className="spectator-join-prompt">
           <p className="join-label">Join with code:</p>
           <div className="join-code">{session.code}</div>
@@ -460,6 +418,161 @@ export function SpectatorView({ sessionCode, onBack }: Props) {
       <div className="spectator-player-indicator">
         {players?.length ?? 0} climbers
       </div>
+    </div>
+  );
+}
+
+/**
+ * Derive personality traits deterministically from player name
+ * This ensures the same player always has the same "personality"
+ */
+function getPersonalityFromName(name: string): {
+  chattiness: number; // 0.5-2.0 - multiplier on timing between actions (higher = less frequent)
+  talkative: number;  // 0.1-0.6 - probability of making a sound when action fires
+  wanderAmount: number; // 0-15 - how far they wander from home position in pixels
+} {
+  // Simple deterministic hash from name
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash) + name.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  // Make hash positive
+  hash = Math.abs(hash);
+
+  // Derive traits from different parts of the hash
+  const chattiness = 0.5 + ((hash % 100) / 100) * 1.5; // 0.5 to 2.0
+  const talkative = 0.1 + (((hash >> 8) % 100) / 100) * 0.5; // 0.1 to 0.6
+  const wanderAmount = ((hash >> 16) % 16); // 0 to 15 pixels
+
+  return { chattiness, talkative, wanderAmount };
+}
+
+/**
+ * LobbyBlob - Individual blob in the lobby with autonomous behavior
+ *
+ * Each blob manages its own behavior loop:
+ * - Makes sounds at random intervals based on personality
+ * - Has independent idle animations
+ * - Optionally wanders within its area
+ */
+interface LobbyBlobProps {
+  player: { _id: string; name: string };
+  index: number;
+  totalPlayers: number;
+  hasAppeared: boolean;
+  onAppeared: () => void;
+}
+
+function LobbyBlob({ player, index, totalPlayers, hasAppeared, onAppeared }: LobbyBlobProps) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [wanderOffset, setWanderOffset] = useState({ x: 0, y: 0 });
+  const timeoutRef = useRef<number | null>(null);
+  const wanderTimeoutRef = useRef<number | null>(null);
+
+  // Get deterministic personality for this blob
+  const personality = getPersonalityFromName(player.name);
+
+  // Mark as appeared after the animation duration (500ms + stagger delay)
+  useEffect(() => {
+    if (!hasAppeared) {
+      // Animation duration (500ms) + max stagger delay (750ms) + buffer
+      const animationDuration = 500 + (index % 16) * 50 + 100;
+      const timeoutId = setTimeout(() => {
+        onAppeared();
+      }, animationDuration);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [hasAppeared, index, onAppeared]);
+
+  // Autonomous behavior loop - each blob manages its own sounds/actions
+  useEffect(() => {
+    if (!hasAppeared) return;
+
+    const scheduleNextAction = () => {
+      // Base interval modified by chattiness (higher chattiness = longer waits)
+      // Range: 2000-6000ms base, modified by personality
+      const baseDelay = 2000 + Math.random() * 4000;
+      const delay = baseDelay * personality.chattiness;
+
+      timeoutRef.current = window.setTimeout(() => {
+        // Decide what to do based on personality
+        if (Math.random() < personality.talkative) {
+          // Make a sound and animate
+          playSound("blobAmbient");
+          setIsSpeaking(true);
+          setTimeout(() => setIsSpeaking(false), 400);
+        }
+        // Schedule next action
+        scheduleNextAction();
+      }, delay);
+    };
+
+    // Start behavior loop with initial random delay to desynchronize blobs
+    const initialDelay = Math.random() * 2000;
+    timeoutRef.current = window.setTimeout(scheduleNextAction, initialDelay);
+
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [hasAppeared, personality.chattiness, personality.talkative]);
+
+  // Optional wandering behavior - small random position changes
+  useEffect(() => {
+    if (!hasAppeared || personality.wanderAmount === 0) return;
+
+    const wander = () => {
+      // Small random offset within wanderAmount radius
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * personality.wanderAmount;
+      setWanderOffset({
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance,
+      });
+
+      // Schedule next wander (slower than speaking - 3-8 seconds)
+      const nextWander = 3000 + Math.random() * 5000;
+      wanderTimeoutRef.current = window.setTimeout(wander, nextWander);
+    };
+
+    // Start wandering with random initial delay
+    wanderTimeoutRef.current = window.setTimeout(wander, 1000 + Math.random() * 2000);
+
+    return () => {
+      if (wanderTimeoutRef.current) {
+        window.clearTimeout(wanderTimeoutRef.current);
+      }
+    };
+  }, [hasAppeared, personality.wanderAmount]);
+
+  // Calculate style with wandering offset
+  const baseStyle = getLobbyBlobStyle(index, totalPlayers);
+  const style: React.CSSProperties = { ...baseStyle };
+
+  // Merge transforms properly - add wander offset to existing transform
+  if (baseStyle.transform) {
+    const existingTransform = baseStyle.transform as string;
+    style.transform = `${existingTransform} translate(${wanderOffset.x}px, ${wanderOffset.y}px)`;
+  } else {
+    style.transform = `translate(${wanderOffset.x}px, ${wanderOffset.y}px)`;
+  }
+
+  // Smooth transition for wandering
+  style.transition = "transform 1.5s ease-in-out";
+
+  return (
+    <div
+      className={`lobby-blob ${getIdleAnimation(player.name)} ${getLobbyBlobPosition(index, totalPlayers)}${hasAppeared ? " blob-appeared" : ""}${isSpeaking ? " blob-speaking" : ""}`}
+      style={style}
+    >
+      <Blob
+        config={generateBlob(player.name)}
+        size={getBlobSize(totalPlayers)}
+        state="idle"
+      />
+      <span className="lobby-blob-name">{player.name}</span>
     </div>
   );
 }

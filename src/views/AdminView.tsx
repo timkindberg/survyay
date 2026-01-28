@@ -4,6 +4,8 @@ import { api } from "../../convex/_generated/api";
 import type { Id, Doc } from "../../convex/_generated/dataModel";
 import { Timer } from "../components/Timer";
 import type { RopeClimbingState } from "../../lib/ropeTypes";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { getFriendlyErrorMessage } from "../lib/errorMessages";
 
 // Types for host action button
 type SessionStatus = "lobby" | "active" | "finished";
@@ -183,6 +185,7 @@ function HostActionButton({
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isBackLoading, setIsBackLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const actionConfig = useHostAction(
     sessionId,
@@ -203,10 +206,12 @@ function HostActionButton({
     if (!actionConfig || actionConfig.disabled || isLoading) return;
 
     setIsLoading(true);
+    setActionError(null);
     try {
       await actionConfig.action();
     } catch (error) {
       console.error("Action failed:", error);
+      setActionError(getFriendlyErrorMessage(error));
     } finally {
       // Brief delay to prevent rapid double-clicks
       setTimeout(() => setIsLoading(false), 300);
@@ -217,10 +222,12 @@ function HostActionButton({
     if (!backConfig || backConfig.disabled || isBackLoading) return;
 
     setIsBackLoading(true);
+    setActionError(null);
     try {
       await backConfig.action();
     } catch (error) {
       console.error("Back action failed:", error);
+      setActionError(getFriendlyErrorMessage(error));
     } finally {
       setTimeout(() => setIsBackLoading(false), 300);
     }
@@ -263,6 +270,12 @@ function HostActionButton({
 
   return (
     <div className="host-action-container">
+      <ErrorMessage
+        message={actionError}
+        onDismiss={() => setActionError(null)}
+        variant="inline"
+        autoDismissMs={5000}
+      />
       <div className="host-action-buttons">
         {backConfig && (
           <button
@@ -308,6 +321,7 @@ export function AdminView({ onBack }: Props) {
   const [hostId] = useState(getHostId);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedPlayLink, setCopiedPlayLink] = useState(false);
+  const [adminError, setAdminError] = useState<string | null>(null);
 
   const createSession = useMutation(api.sessions.create);
   const deleteSession = useMutation(api.sessions.remove);
@@ -349,15 +363,25 @@ export function AdminView({ onBack }: Props) {
   const showResults = useMutation(api.sessions.showResults);
 
   async function handleCreate() {
-    const result = await createSession({ hostId });
-    setSessionId(result.sessionId);
+    try {
+      const result = await createSession({ hostId });
+      setSessionId(result.sessionId);
+      setAdminError(null);
+    } catch (err) {
+      setAdminError(getFriendlyErrorMessage(err));
+    }
   }
 
   async function handleDelete(id: Id<"sessions">) {
     if (confirm("Are you sure you want to delete this session? This cannot be undone.")) {
-      await deleteSession({ sessionId: id });
-      if (sessionId === id) {
-        setSessionId(null);
+      try {
+        await deleteSession({ sessionId: id });
+        if (sessionId === id) {
+          setSessionId(null);
+        }
+        setAdminError(null);
+      } catch (err) {
+        setAdminError(getFriendlyErrorMessage(err));
       }
     }
   }
@@ -365,7 +389,12 @@ export function AdminView({ onBack }: Props) {
   async function handleBackToLobby() {
     if (!sessionId) return;
     if (confirm("This will reset all player scores and progress. Continue?")) {
-      await backToLobby({ sessionId });
+      try {
+        await backToLobby({ sessionId });
+        setAdminError(null);
+      } catch (err) {
+        setAdminError(getFriendlyErrorMessage(err));
+      }
     }
   }
 
@@ -402,6 +431,14 @@ export function AdminView({ onBack }: Props) {
   if (!sessionId || !session) {
     return (
       <div className="admin-view">
+        {/* Admin error toast */}
+        <ErrorMessage
+          message={adminError}
+          onDismiss={() => setAdminError(null)}
+          variant="toast"
+          autoDismissMs={5000}
+        />
+
         <header className="admin-header">
           <button onClick={onBack} className="back-btn">Back</button>
           <h1>Admin Panel</h1>
@@ -440,6 +477,14 @@ export function AdminView({ onBack }: Props) {
   // Active session dashboard
   return (
     <div className="admin-view admin-dashboard">
+      {/* Admin error toast */}
+      <ErrorMessage
+        message={adminError}
+        onDismiss={() => setAdminError(null)}
+        variant="toast"
+        autoDismissMs={5000}
+      />
+
       {/* Top bar */}
       <header className="admin-header">
         <div className="header-left">
