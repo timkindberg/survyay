@@ -62,11 +62,13 @@ function getAnimationDelay(name: string): string {
 
 interface Props {
   onBack: () => void;
+  initialCode?: string | null;
 }
 
-export function PlayerView({ onBack }: Props) {
-  const [joinCode, setJoinCode] = useState("");
+export function PlayerView({ onBack, initialCode }: Props) {
+  const [joinCode, setJoinCode] = useState(initialCode ?? "");
   const [playerName, setPlayerName] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [playerId, setPlayerId] = useState<Id<"players"> | null>(null);
   const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
   const [error, setError] = useState("");
@@ -91,6 +93,13 @@ export function PlayerView({ onBack }: Props) {
     }
     setIsRestoring(false);
   }, []);
+
+  // Auto-focus name input when code is prefilled from URL
+  useEffect(() => {
+    if (initialCode && !isRestoring && !playerId && nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
+  }, [initialCode, isRestoring, playerId]);
 
   const getByCode = useQuery(
     api.sessions.getByCode,
@@ -322,6 +331,7 @@ export function PlayerView({ onBack }: Props) {
             maxLength={4}
           />
           <input
+            ref={nameInputRef}
             type="text"
             placeholder="Your Name"
             value={playerName}

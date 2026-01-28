@@ -8,13 +8,19 @@ import { MuteToggle } from "./components/MuteToggle";
 type Mode = "select" | "admin" | "player" | "spectator" | "spectator-join" | "blobs";
 
 // Check URL for routes
-function getInitialMode(): { mode: Mode; spectatorCode?: string } {
+function getInitialMode(): { mode: Mode; spectatorCode?: string; playCode?: string } {
   const path = window.location.pathname;
 
   // /spectate/:code - Spectator view
   const spectateMatch = path.match(/^\/spectate\/([A-Za-z]{4})$/);
   if (spectateMatch) {
     return { mode: "spectator", spectatorCode: spectateMatch[1]!.toUpperCase() };
+  }
+
+  // /play/:code - Player view with prefilled code
+  const playCodeMatch = path.match(/^\/play\/([A-Za-z]{4})$/);
+  if (playCodeMatch) {
+    return { mode: "player", playCode: playCodeMatch[1]!.toUpperCase() };
   }
 
   // /admin or /host - Admin panel
@@ -41,6 +47,7 @@ const initialState = getInitialMode();
 export function App() {
   const [mode, setMode] = useState<Mode>(initialState.mode);
   const [spectatorCode, setSpectatorCode] = useState<string | null>(initialState.spectatorCode ?? null);
+  const [playCode, setPlayCode] = useState<string | null>(initialState.playCode ?? null);
 
   // Update URL when mode changes (but not on initial render)
   const [isInitialRender, setIsInitialRender] = useState(true);
@@ -70,7 +77,7 @@ export function App() {
   }
 
   if (mode === "player") {
-    return <PlayerView onBack={goHome} />;
+    return <PlayerView onBack={goHome} initialCode={playCode} />;
   }
 
   if (mode === "spectator" && spectatorCode) {

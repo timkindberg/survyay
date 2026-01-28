@@ -1102,6 +1102,37 @@ button.primary:disabled {
   color: #1e293b;
 }
 
+.play-link-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #10b981;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.play-link-button:hover {
+  background: #059669;
+  transform: scale(1.02);
+}
+
+.play-link-button.copied {
+  background: #34d399;
+  animation: link-copied 0.3s ease;
+}
+
+@keyframes link-copied {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
 .spectator-btn {
   background: #0ea5e9;
 }

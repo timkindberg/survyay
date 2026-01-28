@@ -307,6 +307,7 @@ export function AdminView({ onBack }: Props) {
   const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
   const [hostId] = useState(getHostId);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedPlayLink, setCopiedPlayLink] = useState(false);
 
   const createSession = useMutation(api.sessions.create);
   const deleteSession = useMutation(api.sessions.remove);
@@ -385,6 +386,18 @@ export function AdminView({ onBack }: Props) {
     }
   }
 
+  async function copyPlayLink() {
+    if (!session) return;
+    try {
+      const playLink = `${window.location.origin}/play/${session.code}`;
+      await navigator.clipboard.writeText(playLink);
+      setCopiedPlayLink(true);
+      setTimeout(() => setCopiedPlayLink(false), 2000);
+    } catch {
+      console.error("Failed to copy play link");
+    }
+  }
+
   // Session list view
   if (!sessionId || !session) {
     return (
@@ -442,6 +455,13 @@ export function AdminView({ onBack }: Props) {
             >
               <span className="code-value">{session.code}</span>
               <span className="copy-icon">{copiedCode ? "✓" : "📋"}</span>
+            </button>
+            <button
+              onClick={copyPlayLink}
+              className={`play-link-button ${copiedPlayLink ? "copied" : ""}`}
+              title="Copy shareable play link"
+            >
+              {copiedPlayLink ? "Copied!" : "Copy Link"}
             </button>
             <span className={`status-badge status-${session.status}`}>{session.status}</span>
           </div>
