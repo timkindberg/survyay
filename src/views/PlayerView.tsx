@@ -664,11 +664,12 @@ export function PlayerView({ onBack, initialCode }: Props) {
               <p className="waiting time-up">Time's up!</p>
             ) : shuffledAnswers ? (
               <div className="options">
-                {shuffledAnswers.shuffledOptions.map((item) => (
+                {shuffledAnswers.shuffledOptions.map((item, visualIndex) => (
                   <button
                     key={item.originalIndex}
                     onClick={() => handleAnswer(item.originalIndex)}
                   >
+                    <span className="option-label">{String.fromCharCode(65 + visualIndex)}.</span>
                     {item.option.text}
                   </button>
                 ))}
@@ -677,6 +678,7 @@ export function PlayerView({ onBack, initialCode }: Props) {
               <div className="options">
                 {currentQuestion.options.map((opt, i) => (
                   <button key={i} onClick={() => handleAnswer(i)}>
+                    <span className="option-label">{String.fromCharCode(65 + i)}.</span>
                     {opt.text}
                   </button>
                 ))}
@@ -725,7 +727,7 @@ export function PlayerView({ onBack, initialCode }: Props) {
 
                 {/* Show all options with highlighting (in shuffled order) */}
                 <div className="options revealed">
-                  {optionsToDisplay.map((item) => {
+                  {optionsToDisplay.map((item, visualIndex) => {
                     const originalIndex = item.originalIndex;
                     const rope = ropeClimbingState.ropes[originalIndex];
                     const isThisCorrect = rope?.isCorrect === true;
@@ -742,8 +744,12 @@ export function PlayerView({ onBack, initialCode }: Props) {
                       className += ' player-selected';
                     }
 
+                    // Label based on visual position (A, B, C, D for positions 0, 1, 2, 3)
+                    const visualLabel = String.fromCharCode(65 + visualIndex);
+
                     return (
                       <div key={originalIndex} className={className}>
+                        <span className="option-label">{visualLabel}.</span>
                         <span className="option-text">{item.option.text}</span>
                         {isPlayerSelection && <span className="your-pick">Your pick</span>}
                         {isThisCorrect && <span className="correct-label">Correct</span>}

@@ -329,6 +329,15 @@ li.you {
   background: #e0e7ff;
   color: #3730a3;
   -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.option-label {
+  font-weight: 700;
+  color: #4f46e5;
+  flex-shrink: 0;
 }
 
 .options button:hover {
@@ -543,12 +552,26 @@ li.you {
 .option-revealed {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 14px 16px;
   border-radius: 8px;
   background: #f3f4f6;
   border: 2px solid transparent;
   transition: all 0.2s ease;
+  gap: 8px;
+}
+
+.option-revealed .option-label {
+  font-weight: 700;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.option-revealed.correct-answer .option-label {
+  color: #065f46;
+}
+
+.option-revealed.wrong-selection .option-label {
+  color: #991b1b;
 }
 
 .option-revealed.correct-answer {
