@@ -996,15 +996,22 @@ function PlayerCard({
   const kickPlayer = useMutation(api.players.kick);
 
   async function handleKick() {
+    if (!player._id) {
+      console.error("Cannot kick player: missing player ID");
+      alert("Cannot kick player: missing player ID");
+      return;
+    }
     if (!confirm(`Kick ${player.name} from this session? This will remove their progress.`)) {
       return;
     }
     setIsKicking(true);
     try {
+      console.log("Kicking player:", player._id, player.name);
       await kickPlayer({ playerId: player._id });
+      console.log("Kick mutation completed successfully for:", player._id);
     } catch (err) {
-      console.error("Failed to kick player:", err);
-      alert("Failed to kick player");
+      console.error("Failed to kick player:", player._id, err);
+      alert(`Failed to kick player: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setIsKicking(false);
     }

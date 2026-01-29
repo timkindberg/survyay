@@ -69,9 +69,13 @@ export function HostView({ onBack }: Props) {
 
   async function handleDelete(id: Id<"sessions">) {
     if (confirm("Are you sure you want to delete this session? This cannot be undone.")) {
-      await deleteSession({ sessionId: id });
-      if (sessionId === id) {
-        setSessionId(null);
+      try {
+        await deleteSession({ sessionId: id });
+        if (sessionId === id) {
+          setSessionId(null);
+        }
+      } catch (err) {
+        console.error("Failed to delete session:", err);
       }
     }
   }
