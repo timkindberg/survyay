@@ -474,15 +474,20 @@ function RopesOverlay({
   const prevQuestionIdRef = useRef<string | null>(null);
   const prevQuestionPhaseRef = useRef<QuestionPhase | null>(null);
 
-  // Reset reveal state when stepping backward from revealed phase
+  // Reset reveal state when stepping BACKWARD from revealed phase
   // This handles the "Hide Answers" button going from revealed -> answers_shown
+  // But NOT when going FORWARD from revealed -> results (leaderboard)
   useEffect(() => {
     const prevPhase = prevQuestionPhaseRef.current;
     const currentPhase = questionPhase;
     prevQuestionPhaseRef.current = currentPhase;
 
-    // Detect backward transition: was 'revealed' and now isn't
-    if (prevPhase === "revealed" && currentPhase !== "revealed") {
+    // Phase order: question_shown -> answers_shown -> revealed -> results
+    // Only reset when going BACKWARD, not forward to results
+    const isBackwardTransition = prevPhase === "revealed" &&
+      (currentPhase === "question_shown" || currentPhase === "answers_shown");
+
+    if (isBackwardTransition) {
       // Reset all reveal-related state
       revealStartedRef.current = false;
       setRevealPhase("pending");
