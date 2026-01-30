@@ -130,8 +130,25 @@ export function Mountain({
       return { minElevation: -50, maxElevation: SUMMIT + 350 };
     } else {
       // Player sees their elevation +/- 150m, with minimum visibility
-      const playerMin = Math.max(-50, currentPlayerElevation - 150);
-      const playerMax = Math.min(SUMMIT + 100, currentPlayerElevation + 200);
+      // During reveal/results phases, freeze viewport at player's answer elevation to prevent visual glitches
+      // when their database elevation updates mid-animation
+      let baseElevation = currentPlayerElevation;
+      if (ropeClimbingState && currentPlayerId) {
+        const questionPhase = ropeClimbingState.questionPhase;
+        if (questionPhase === "revealed" || questionPhase === "results") {
+          // Find the player's elevation when they answered
+          for (const rope of ropeClimbingState.ropes) {
+            const playerOnRope = rope.players.find(p => p.playerId === currentPlayerId);
+            if (playerOnRope) {
+              baseElevation = playerOnRope.elevationAtAnswer;
+              break;
+            }
+          }
+        }
+      }
+
+      const playerMin = Math.max(-50, baseElevation - 150);
+      const playerMax = Math.min(SUMMIT + 100, baseElevation + 200);
       // Ensure at least 300m range
       if (playerMax - playerMin < 300) {
         if (playerMin <= 0) {
@@ -142,7 +159,7 @@ export function Mountain({
       }
       return { minElevation: playerMin, maxElevation: playerMax };
     }
-  }, [mode, currentPlayerElevation]);
+  }, [mode, currentPlayerElevation, ropeClimbingState, currentPlayerId]);
 
   // Convert elevation to Y coordinate (higher elevation = lower Y)
   const elevationToY = (elevation: number): number => {
