@@ -20,7 +20,9 @@ export function AIQuestionModal({
 
   if (!isOpen) return null;
 
-  const apiUrl = `${convexUrl}/api/add-questions`;
+  // Convert .convex.cloud to .convex.site for HTTP actions
+  const httpUrl = convexUrl.replace('.convex.cloud', '.convex.site');
+  const apiUrl = `${httpUrl}/api/add-questions`;
 
   const fullInstructions = `Generate 20 trivia questions about [YOUR TOPIC] and add them to the game using this API:
 
