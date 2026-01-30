@@ -51,6 +51,7 @@ Requirements:
 - Question text: Keep concise, ideally under 100 characters for readability
 - Answer options: Keep short, 2-5 words each, under 40 characters
 - Generate all questions at once and send in a single API call
+- This will REPLACE all existing questions (not add to them)
 - Session must be in lobby state (not started yet)`;
 
   const apiDetailsOnly = `API Endpoint: ${apiUrl}

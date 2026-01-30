@@ -119,7 +119,15 @@ http.route({
         );
       }
 
-      // Insert questions
+      // Delete all existing questions first (replace, not add)
+      const existingQuestions = await ctx.runQuery(api.questions.listBySession, {
+        sessionId: session._id,
+      });
+      for (const q of existingQuestions) {
+        await ctx.runMutation(api.questions.remove, { questionId: q._id });
+      }
+
+      // Insert new questions
       const questionIds: Id<"questions">[] = [];
       for (const q of questions) {
         const questionId = await ctx.runMutation(api.questions.create, {
