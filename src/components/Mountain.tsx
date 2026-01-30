@@ -117,7 +117,11 @@ export function Mountain({
   answerShuffleOrder,
 }: MountainProps) {
   // Determine if ropes should be shown
-  const showRopes = ropeClimbingState !== null && ropeClimbingState !== undefined;
+  // Only show ropes after answers are revealed (not during question_shown phase)
+  const showRopes =
+    ropeClimbingState !== null &&
+    ropeClimbingState !== undefined &&
+    ropeClimbingState.questionPhase !== "question_shown";
   // Calculate the visible elevation range
   const { minElevation, maxElevation } = useMemo(() => {
     if (mode === "spectator" || mode === "admin-preview") {
