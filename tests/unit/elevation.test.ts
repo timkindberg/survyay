@@ -5,6 +5,7 @@ import {
   calculateMinorityBonus,
   applyElevationGain,
   hasReachedSummit,
+  calculateDynamicMax,
   SUMMIT,
 } from "../../lib/elevation";
 
@@ -199,5 +200,160 @@ describe("hasReachedSummit", () => {
 describe("constants", () => {
   it("has expected summit value", () => {
     expect(SUMMIT).toBe(1000);
+  });
+});
+
+describe("calculateDynamicMax", () => {
+  describe("basic rubber-banding", () => {
+    it("distributes remaining distance across questions", () => {
+      // Leader at 700m, 3 questions left: (1000-700)/3 = 100m
+      expect(calculateDynamicMax(700, 3)).toBe(100);
+    });
+
+    it("handles even distribution", () => {
+      // Leader at 500m, 5 questions left: (1000-500)/5 = 100m
+      expect(calculateDynamicMax(500, 5)).toBe(100);
+    });
+
+    it("increases cap when many questions remain", () => {
+      // Leader at 50m, 10 questions left: (1000-50)/10 = 95m
+      expect(calculateDynamicMax(50, 10)).toBe(95);
+    });
+
+    it("decreases cap when close to summit", () => {
+      // Leader at 900m, 2 questions left: (1000-900)/2 = 50m
+      expect(calculateDynamicMax(900, 2)).toBe(50);
+    });
+  });
+
+  describe("bounds enforcement", () => {
+    it("applies minimum cap of 50m", () => {
+      // Leader at 950m, 1 question left: (1000-950)/1 = 50m (exactly at floor)
+      expect(calculateDynamicMax(950, 1)).toBe(50);
+
+      // Leader at 975m, 1 question left: (1000-975)/1 = 25m -> capped to 50m
+      expect(calculateDynamicMax(975, 1)).toBe(50);
+
+      // Leader at 990m, 1 question left: (1000-990)/1 = 10m -> capped to 50m
+      expect(calculateDynamicMax(990, 1)).toBe(50);
+    });
+
+    it("applies maximum cap of 150m", () => {
+      // Leader at 100m, 10 questions left: (1000-100)/10 = 90m (under cap)
+      expect(calculateDynamicMax(100, 10)).toBe(90);
+
+      // Leader at 0m, 10 questions left: (1000-0)/10 = 100m (under cap)
+      expect(calculateDynamicMax(0, 10)).toBe(100);
+
+      // Leader at 0m, 5 questions left: (1000-0)/5 = 200m -> capped to 150m
+      expect(calculateDynamicMax(0, 5)).toBe(150);
+
+      // Leader at 100m, 5 questions left: (1000-100)/5 = 180m -> capped to 150m
+      expect(calculateDynamicMax(100, 5)).toBe(150);
+    });
+
+    it("stays within 50-150m range", () => {
+      const scenarios = [
+        { leader: 0, questions: 1 },
+        { leader: 500, questions: 5 },
+        { leader: 900, questions: 1 },
+        { leader: 50, questions: 20 },
+        { leader: 950, questions: 2 },
+      ];
+
+      scenarios.forEach(({ leader, questions }) => {
+        const cap = calculateDynamicMax(leader, questions);
+        expect(cap).toBeGreaterThanOrEqual(50);
+        expect(cap).toBeLessThanOrEqual(150);
+      });
+    });
+  });
+
+  describe("edge cases", () => {
+    it("handles leader at summit", () => {
+      // Already at 1000m: distance = 0, should return max cap
+      expect(calculateDynamicMax(1000, 5)).toBe(150);
+    });
+
+    it("handles leader beyond summit", () => {
+      // Above summit (shouldn't happen, but handle gracefully)
+      expect(calculateDynamicMax(1050, 5)).toBe(150);
+    });
+
+    it("handles 0 questions remaining", () => {
+      // Shouldn't happen (reveal happens after answering), but return max
+      expect(calculateDynamicMax(500, 0)).toBe(150);
+    });
+
+    it("handles negative questions remaining", () => {
+      // Edge case: return max cap
+      expect(calculateDynamicMax(500, -1)).toBe(150);
+    });
+
+    it("handles leader at 0", () => {
+      // Start of game: 1000/10 = 100m
+      expect(calculateDynamicMax(0, 10)).toBe(100);
+    });
+  });
+
+  describe("realistic game scenarios", () => {
+    it("early game: loose caps allow natural gameplay", () => {
+      // Question 1 reveal: leader at ~100m, 9 questions left
+      // (1000-100)/9 = 100m
+      expect(calculateDynamicMax(100, 9)).toBe(100);
+    });
+
+    it("mid game: caps start tightening", () => {
+      // Question 5 reveal: leader at 500m, 5 questions left
+      // (1000-500)/5 = 100m
+      expect(calculateDynamicMax(500, 5)).toBe(100);
+    });
+
+    it("late game: tight caps prevent early summiting", () => {
+      // Question 8 reveal: leader at 850m, 2 questions left
+      // (1000-850)/2 = 75m
+      expect(calculateDynamicMax(850, 2)).toBe(75);
+    });
+
+    it("final question: minimum cap ensures finish possible", () => {
+      // Question 9 reveal: leader at 975m, 1 question left
+      // (1000-975)/1 = 25m -> capped to 50m (still allows summit)
+      expect(calculateDynamicMax(975, 1)).toBe(50);
+    });
+
+    it("runaway leader scenario", () => {
+      // Leader far ahead: 800m with 8 questions left
+      // (1000-800)/8 = 25m -> capped to 50m (slows them down)
+      expect(calculateDynamicMax(800, 8)).toBe(50);
+    });
+
+    it("tight race scenario", () => {
+      // Close race: leader at 300m with 7 questions left
+      // (1000-300)/7 = 100m (normal gameplay)
+      expect(calculateDynamicMax(300, 7)).toBe(100);
+    });
+  });
+
+  describe("rounding behavior", () => {
+    it("rounds to nearest integer", () => {
+      // 1000-333 = 667, 667/7 = 95.28... -> rounds to 95
+      expect(calculateDynamicMax(333, 7)).toBe(95);
+
+      // 1000-250 = 750, 750/7 = 107.14... -> rounds to 107
+      expect(calculateDynamicMax(250, 7)).toBe(107);
+    });
+
+    it("always returns integer values", () => {
+      const scenarios = [
+        { leader: 123, questions: 7 },
+        { leader: 456, questions: 9 },
+        { leader: 789, questions: 3 },
+      ];
+
+      scenarios.forEach(({ leader, questions }) => {
+        const cap = calculateDynamicMax(leader, questions);
+        expect(Number.isInteger(cap)).toBe(true);
+      });
+    });
   });
 });

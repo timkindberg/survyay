@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getRandomQuestions } from "./sampleQuestions";
-import { calculateElevationGain, SUMMIT } from "../lib/elevation";
+import { calculateElevationGain, calculateDynamicMax, SUMMIT } from "../lib/elevation";
 
 // Generate a random 4-character join code
 function generateCode(): string {
@@ -262,33 +262,64 @@ export const revealAnswer = mutation({
       ? Math.min(...answers.map((a) => a.answeredAt))
       : 0;
 
-    // Calculate scores and update player elevations
-    for (const answer of answers) {
-      const player = await ctx.db.get(answer.playerId);
-      if (!player) continue;
+    // Calculate scores (before applying dynamic cap)
+    const scoringResults = new Map<string, { baseScore: number; minorityBonus: number; total: number; isCorrect: boolean }>();
 
+    for (const answer of answers) {
       const isCorrect = question.correctOptionIndex !== undefined
         ? answer.optionIndex === question.correctOptionIndex
         : true; // Poll mode - all answers are "correct"
 
       if (isCorrect) {
-        // Calculate response time from first answer
         const answerTime = answer.answeredAt - firstAnsweredAt;
         const playersOnMyLadder = answerCounts.get(answer.optionIndex) ?? 1;
-
-        // Calculate scoring components
         const scoring = calculateElevationGain(answerTime, playersOnMyLadder, totalAnswered);
+        scoringResults.set(answer._id, { ...scoring, isCorrect: true });
+      } else {
+        scoringResults.set(answer._id, { baseScore: 0, minorityBonus: 0, total: 0, isCorrect: false });
+      }
+    }
+
+    // Calculate dynamic max elevation cap BEFORE applying gains
+    // This ensures we cap based on current state, not future state
+    const questionsRemaining = enabledQuestions.length - session.currentQuestionIndex - 1;
+
+    // Get current leader elevation (before this question's gains)
+    const players = await ctx.db
+      .query("players")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    const leaderElevation = players.length > 0
+      ? Math.max(...players.map((p) => p.elevation))
+      : 0;
+
+    const dynamicMax = calculateDynamicMax(leaderElevation, questionsRemaining);
+
+    // Store dynamic max on the question for debugging
+    await ctx.db.patch(question._id, {
+      dynamicMaxElevation: dynamicMax,
+    });
+
+    // Apply scores with dynamic cap
+    for (const answer of answers) {
+      const scoring = scoringResults.get(answer._id);
+      if (!scoring) continue;
+
+      if (scoring.isCorrect) {
+        // Apply dynamic cap to total elevation gain
+        const cappedGain = Math.min(scoring.total, dynamicMax);
 
         // Update the answer record with scoring details
         await ctx.db.patch(answer._id, {
           baseScore: scoring.baseScore,
           minorityBonus: scoring.minorityBonus,
-          elevationGain: scoring.total,
+          elevationGain: cappedGain, // Store the capped value
         });
 
         // Update player elevation
         const currentElevation = answer.elevationAtAnswer;
-        const newElevation = Math.min(SUMMIT, currentElevation + scoring.total);
+        const newElevation = Math.min(SUMMIT, currentElevation + cappedGain);
 
         await ctx.db.patch(answer.playerId, {
           elevation: newElevation,

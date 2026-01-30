@@ -93,3 +93,47 @@ export function applyElevationGain(currentElevation: number, gain: number): numb
 export function hasReachedSummit(elevation: number): boolean {
   return elevation >= SUMMIT;
 }
+
+/**
+ * Calculate dynamic maximum elevation gain for rubber-banding.
+ * Prevents early summiting by distributing remaining distance across remaining questions.
+ *
+ * Algorithm:
+ * - targetMax = (distanceToSummit) / questionsRemaining
+ * - Bounded by MIN_ELEVATION_CAP (50m) and MAX_ELEVATION_CAP (150m)
+ *
+ * Examples:
+ * - Leader at 700m, 3 questions left: (1000-700)/3 = 100m cap
+ * - Leader at 900m, 1 question left: (1000-900)/1 = 100m cap
+ * - Leader at 50m, 10 questions left: (1000-50)/10 = 95m cap
+ * - Leader at 950m, 1 question left: (1000-950)/1 = 50m cap (floor applied)
+ *
+ * @param leaderElevation - Current elevation of the top player
+ * @param questionsRemaining - Number of questions left after current reveal
+ * @returns Dynamic max elevation cap in meters (50-150m)
+ */
+export function calculateDynamicMax(
+  leaderElevation: number,
+  questionsRemaining: number
+): number {
+  const MIN_CAP = 50;
+  const MAX_CAP = 150;
+
+  // Edge case: no questions remaining (shouldn't happen, but handle gracefully)
+  if (questionsRemaining <= 0) {
+    return MAX_CAP; // Let them finish if this is the last question
+  }
+
+  const distanceToSummit = SUMMIT - leaderElevation;
+
+  // If already at or above summit, no cap needed
+  if (distanceToSummit <= 0) {
+    return MAX_CAP;
+  }
+
+  // Calculate target max to spread remaining distance
+  const targetMax = distanceToSummit / questionsRemaining;
+
+  // Apply bounds
+  return Math.max(MIN_CAP, Math.min(MAX_CAP, Math.round(targetMax)));
+}
