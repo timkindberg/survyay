@@ -175,13 +175,9 @@ describe("sessions.backToLobby", () => {
 
     const { sessionId } = await t.mutation(api.sessions.create, { hostId: "host-1" });
 
-    const questionId = await t.mutation(api.questions.create, {
-      sessionId,
-      text: "Q1",
-      options: [{ text: "A" }, { text: "B" }],
-      correctOptionIndex: 0,
-      timeLimit: 30,
-    });
+    // Get the first sample question
+    const questions = await t.query(api.questions.listBySession, { sessionId });
+    const firstQuestion = questions[0]!;
 
     const playerId = await t.mutation(api.players.join, {
       sessionId,
@@ -194,10 +190,13 @@ describe("sessions.backToLobby", () => {
 
     // Submit correct answer to gain elevation
     await t.mutation(api.answers.submit, {
-      questionId,
+      questionId: firstQuestion._id,
       playerId,
-      optionIndex: 0,
+      optionIndex: firstQuestion.correctOptionIndex!,
     });
+
+    // Reveal to calculate scores and update player elevation
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
 
     // Verify player has elevation
     let players = await t.query(api.players.listBySession, { sessionId });

@@ -144,38 +144,51 @@ export function PlayerView({ onBack, initialCode }: Props) {
     api.players.get,
     playerId ? { playerId } : "skip"
   );
-  const players = useQuery(
-    api.players.listBySession,
-    sessionId ? { sessionId } : "skip"
-  );
   const currentQuestion = useQuery(
     api.questions.getCurrentQuestion,
     sessionId ? { sessionId } : "skip"
   );
-  const hasAnswered = useQuery(
-    api.answers.hasAnswered,
-    currentQuestion && playerId
-      ? { questionId: currentQuestion._id, playerId }
-      : "skip"
-  );
-  const results = useQuery(
-    api.answers.getResults,
-    currentQuestion ? { questionId: currentQuestion._id } : "skip"
-  );
-  const timingInfo = useQuery(
-    api.answers.getTimingInfo,
-    currentQuestion ? { questionId: currentQuestion._id } : "skip"
-  );
-  const leaderboard = useQuery(
-    api.players.getLeaderboard,
-    sessionId ? { sessionId } : "skip"
-  );
 
   // Rope climbing state for active question visualization
+  // Placed before players query since we derive player data from it during gameplay
   const ropeClimbingState = useQuery(
     api.answers.getRopeClimbingState,
     sessionId ? { sessionId } : "skip"
   ) as RopeClimbingState | null | undefined;
+
+  // Only fetch full player list in lobby - during gameplay, derive from ropeClimbingState
+  // Always fetch players for accurate elevation display on Mountain
+  // TODO: Optimize with backend consolidation (Task #115) to add currentElevation to ropeClimbingState
+  const players = useQuery(
+    api.players.listBySession,
+    sessionId ? { sessionId } : "skip"
+  );
+
+  // Only fetch leaderboard when needed (results phase or game finished)
+  const questionPhaseFromState = ropeClimbingState?.questionPhase ?? null;
+  const needsLeaderboard = questionPhaseFromState === "results" || session?.status === "finished";
+  const leaderboard = useQuery(
+    api.players.getLeaderboard,
+    sessionId && needsLeaderboard ? { sessionId } : "skip"
+  );
+
+  // Derived from ropeClimbingState - replaces separate hasAnswered subscription
+  const hasAnswered = useMemo(() => {
+    if (!ropeClimbingState || !playerId) return false;
+    return ropeClimbingState.ropes.some(rope =>
+      rope.players.some(p => p.playerId === playerId)
+    );
+  }, [ropeClimbingState, playerId]);
+
+  // Derived from ropeClimbingState - replaces separate timingInfo subscription
+  const timingInfo = useMemo(() => {
+    if (!ropeClimbingState) return null;
+    return {
+      firstAnsweredAt: ropeClimbingState.timing.firstAnsweredAt,
+      timeLimit: ropeClimbingState.timing.timeLimit,
+      totalAnswers: ropeClimbingState.answeredCount,
+    };
+  }, [ropeClimbingState]);
 
   const submitAnswer = useMutation(api.answers.submit);
 
@@ -786,13 +799,19 @@ export function PlayerView({ onBack, initialCode }: Props) {
 
           {/* Phase: revealed - show answer feedback with all options (shuffled order) */}
           {questionPhase === "revealed" && ropeClimbingState && (() => {
-            // Find which original option index the player selected
+            // Find which original option index the player selected and get their data
+            let playerElevationGain: number | undefined;
             const playerSelectedOriginalIndex = ropeClimbingState.ropes.findIndex(
-              rope => rope.players.some(p => p.playerId === playerId)
+              rope => {
+                const found = rope.players.find(p => p.playerId === playerId);
+                if (found) playerElevationGain = found.elevationGain;
+                return !!found;
+              }
             );
             const correctOriginalIndex = ropeClimbingState.ropes.findIndex(r => r.isCorrect === true);
             const isCorrect = playerSelectedOriginalIndex === correctOriginalIndex && playerSelectedOriginalIndex !== -1;
             const didAnswer = playerSelectedOriginalIndex !== -1;
+            const elevationGain = playerElevationGain ?? 0;
 
             // Use shuffled options for display (same order as when answering)
             const optionsToDisplay = shuffledAnswers
@@ -816,7 +835,7 @@ export function PlayerView({ onBack, initialCode }: Props) {
                       {isCorrect ? (
                         <>
                           <span className="result-text">CORRECT!</span>
-                          <span className="elevation-gain">+100m</span>
+                          <span className="elevation-gain">+{elevationGain}m</span>
                         </>
                       ) : (
                         <>

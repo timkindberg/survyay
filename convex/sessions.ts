@@ -308,14 +308,16 @@ export const revealAnswer = mutation({
     // This ensures we cap based on current state, not future state
     const questionsRemaining = enabledQuestions.length - session.currentQuestionIndex - 1;
 
-    // Get current leader elevation (before this question's gains)
+    // Get all players for this session
     const players = await ctx.db
       .query("players")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .collect();
 
-    const leaderElevation = players.length > 0
-      ? Math.max(...players.map((p) => p.elevation))
+    // Find the leading NON-SUMMITED player (exclude players at or above 1000m)
+    const nonSummitedPlayers = players.filter((p) => p.elevation < SUMMIT);
+    const leaderElevation = nonSummitedPlayers.length > 0
+      ? Math.max(...nonSummitedPlayers.map((p) => p.elevation))
       : 0;
 
     const dynamicMax = calculateDynamicMax(leaderElevation, questionsRemaining);
@@ -325,29 +327,41 @@ export const revealAnswer = mutation({
       dynamicMaxElevation: dynamicMax,
     });
 
-    // Apply scores with dynamic cap
+    // Track players who will summit this turn
+    const newSummiters: { playerId: typeof answers[0]["playerId"]; finalElevation: number }[] = [];
+
+    // Apply scores with dynamic cap (but summiters are uncapped for bonus elevation)
     for (const answer of answers) {
       const scoring = scoringResults.get(answer._id);
       if (!scoring) continue;
 
       if (scoring.isCorrect) {
-        // Apply dynamic cap to total elevation gain
-        const cappedGain = Math.min(scoring.total, dynamicMax);
+        const currentElevation = answer.elevationAtAnswer;
+        const wasAlreadySummited = currentElevation >= SUMMIT;
+
+        // Summiters are uncapped for bonus elevation, non-summiters get capped
+        const cappedGain = wasAlreadySummited
+          ? scoring.total // Already summited - no cap, earn bonus
+          : Math.min(scoring.total, dynamicMax); // Not yet summited - apply cap
 
         // Update the answer record with scoring details
         await ctx.db.patch(answer._id, {
           baseScore: scoring.baseScore,
           minorityBonus: scoring.minorityBonus,
-          elevationGain: cappedGain, // Store the capped value
+          elevationGain: cappedGain,
         });
 
-        // Update player elevation
-        const currentElevation = answer.elevationAtAnswer;
-        const newElevation = Math.min(SUMMIT, currentElevation + cappedGain);
+        // Update player elevation - NO LONGER CAPPED at SUMMIT
+        const newElevation = currentElevation + cappedGain;
 
         await ctx.db.patch(answer.playerId, {
           elevation: newElevation,
         });
+
+        // Track if this player just crossed 1000m this turn
+        if (currentElevation < SUMMIT && newElevation >= SUMMIT) {
+          newSummiters.push({ playerId: answer.playerId, finalElevation: newElevation });
+        }
       } else {
         // Wrong answer - no elevation gain
         await ctx.db.patch(answer._id, {
@@ -355,6 +369,36 @@ export const revealAnswer = mutation({
           minorityBonus: 0,
           elevationGain: 0,
         });
+      }
+    }
+
+    // Assign summit places using DENSE RANKING
+    if (newSummiters.length > 0) {
+      // Count existing summiters to know starting place number
+      const existingSummiters = players.filter((p) => p.summitPlace !== undefined);
+      const nextPlaceNumber = existingSummiters.length > 0
+        ? Math.max(...existingSummiters.map((p) => p.summitPlace!)) + 1
+        : 1;
+
+      // Sort new summiters by final elevation (descending)
+      newSummiters.sort((a, b) => b.finalElevation - a.finalElevation);
+
+      // Apply DENSE RANKING: same elevation = same place, next different = next place
+      let currentPlace = nextPlaceNumber;
+      let lastElevation: number | null = null;
+
+      for (const summiter of newSummiters) {
+        // If elevation is different from previous, increment place
+        if (lastElevation !== null && summiter.finalElevation !== lastElevation) {
+          currentPlace++;
+        }
+
+        await ctx.db.patch(summiter.playerId, {
+          summitPlace: currentPlace,
+          summitElevation: summiter.finalElevation,
+        });
+
+        lastElevation = summiter.finalElevation;
       }
     }
 
@@ -502,7 +546,12 @@ export const backToLobby = mutation({
       .collect();
 
     for (const player of players) {
-      await ctx.db.patch(player._id, { elevation: 0 });
+      await ctx.db.patch(player._id, {
+        elevation: 0,
+        lastOptionIndex: undefined,
+        summitPlace: undefined,
+        summitElevation: undefined,
+      });
     }
 
     // Delete all answers for this session's questions

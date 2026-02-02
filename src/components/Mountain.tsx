@@ -117,11 +117,13 @@ export function Mountain({
   answerShuffleOrder,
 }: MountainProps) {
   // Determine if ropes should be shown
-  // Only show ropes after answers are revealed (not during question_shown phase)
+  // Show ropes during answers_shown and revealed phases (not during question_shown or results)
+  // During "results" phase, blobs should appear at their actual elevation on the mountain
   const showRopes =
     ropeClimbingState !== null &&
     ropeClimbingState !== undefined &&
-    ropeClimbingState.questionPhase !== "question_shown";
+    ropeClimbingState.questionPhase !== "question_shown" &&
+    ropeClimbingState.questionPhase !== "results";
   // Calculate the visible elevation range
   const { minElevation, maxElevation } = useMemo(() => {
     if (mode === "spectator" || mode === "admin-preview") {
@@ -133,6 +135,8 @@ export function Mountain({
       // During reveal/results phases, freeze viewport at player's answer elevation to prevent visual glitches
       // when their database elevation updates mid-animation
       let baseElevation = currentPlayerElevation;
+      let lowestElevationToInclude = currentPlayerElevation;
+
       if (ropeClimbingState && currentPlayerId) {
         const questionPhase = ropeClimbingState.questionPhase;
         if (questionPhase === "revealed" || questionPhase === "results") {
@@ -144,10 +148,31 @@ export function Mountain({
               break;
             }
           }
+
+          // CRITICAL FIX: During reveal/results, we must include ALL player elevations in the viewport
+          // This prevents blobs at 0m from rendering below the visible area
+          // Collect all elevations: players on ropes (at their elevationAtAnswer) and players who haven't answered
+          const allElevations: number[] = [baseElevation];
+
+          // Add elevationAtAnswer for all players on ropes
+          for (const rope of ropeClimbingState.ropes) {
+            for (const player of rope.players) {
+              allElevations.push(player.elevationAtAnswer);
+            }
+          }
+
+          // Add elevations for players who haven't answered yet
+          for (const player of ropeClimbingState.notAnswered) {
+            allElevations.push(player.elevation);
+          }
+
+          // The viewport must include the lowest elevation among all players
+          lowestElevationToInclude = Math.min(...allElevations, 0); // Always include 0m as floor
         }
       }
 
-      const playerMin = Math.max(-50, baseElevation - 150);
+      // Calculate viewport range, ensuring it includes all relevant elevations during reveal
+      const playerMin = Math.max(-50, Math.min(baseElevation - 150, lowestElevationToInclude - 50));
       const playerMax = Math.min(SUMMIT + 100, baseElevation + 200);
       // Ensure at least 300m range
       if (playerMax - playerMin < 300) {
@@ -1106,7 +1131,7 @@ const ThinkingPlayer = memo(function ThinkingPlayer({
       style={{
         position: "absolute",
         left: x - size / 2,
-        top: y - size / 2,
+        top: y - size,
         zIndex: isCurrentPlayer ? 100 : 5,
         filter: isCurrentPlayer
           ? "drop-shadow(0 0 6px gold) drop-shadow(0 0 12px rgba(255,215,0,0.5))"
@@ -2114,7 +2139,7 @@ const MemoizedPlayerBlob = memo(function PlayerBlob({
       style={{
         position: "absolute",
         left: x - size / 2,
-        top: y - size / 2,
+        top: y - size,
         transition: "left 0.3s ease-out, top 0.5s ease-out",
         zIndex: isCurrentPlayer ? 100 : 1,
         filter: isCurrentPlayer ? "drop-shadow(0 0 6px gold) drop-shadow(0 0 12px rgba(255,215,0,0.5))" : "none",

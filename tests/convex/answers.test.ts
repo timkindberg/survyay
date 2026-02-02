@@ -6,24 +6,19 @@ import schema from "../../convex/schema";
 const modules = import.meta.glob("../../convex/**/*.ts");
 
 describe("answers.submit", () => {
-  test("first correct answer gets full elevation (100m)", async () => {
+  test("first correct answer gets full elevation (125m)", async () => {
     const t = convexTest(schema, modules);
 
-    // Create a session
+    // Create a session (auto-creates sample questions)
     const { sessionId } = await t.mutation(api.sessions.create, {
       hostId: "test-host",
     });
 
-    // Add a question with correct answer
-    const questionId = await t.mutation(api.questions.create, {
-      sessionId,
-      text: "What is 2+2?",
-      options: [{ text: "3" }, { text: "4" }, { text: "5" }],
-      correctOptionIndex: 1,
-      timeLimit: 30,
-    });
+    // Get the first sample question (which has a correct answer)
+    const questions = await t.query(api.questions.listBySession, { sessionId });
+    const firstQuestion = questions[0]!;
 
-    // Add a player (join uses sessionId directly)
+    // Add a player
     const playerId = await t.mutation(api.players.join, {
       sessionId,
       name: "TestPlayer",
@@ -39,14 +34,20 @@ describe("answers.submit", () => {
 
     // Submit correct answer - first player should get full elevation
     const result = await t.mutation(api.answers.submit, {
-      questionId,
+      questionId: firstQuestion._id,
       playerId,
-      optionIndex: 1, // Correct answer
+      optionIndex: firstQuestion.correctOptionIndex!, // Use the correct answer
     });
 
-    expect(result.correct).toBe(true);
-    expect(result.elevationGain).toBe(100); // First answer always gets max
-    expect(result.newElevation).toBe(100);
+    // Submit just acknowledges the answer was received
+    expect(result.submitted).toBe(true);
+
+    // Trigger reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check elevation on player record
+    const player = await t.query(api.players.get, { playerId });
+    expect(player?.elevation).toBe(125); // First answer always gets max (125m now)
   });
 
   test("subsequent correct answers get elevation based on time from first answer", async () => {
@@ -56,13 +57,9 @@ describe("answers.submit", () => {
       hostId: "test-host",
     });
 
-    const questionId = await t.mutation(api.questions.create, {
-      sessionId,
-      text: "What is 2+2?",
-      options: [{ text: "3" }, { text: "4" }, { text: "5" }],
-      correctOptionIndex: 1,
-      timeLimit: 30,
-    });
+    // Get the first sample question (which has a correct answer)
+    const questions = await t.query(api.questions.listBySession, { sessionId });
+    const firstQuestion = questions[0]!;
 
     // Add two players
     const player1 = await t.mutation(api.players.join, {
@@ -78,29 +75,33 @@ describe("answers.submit", () => {
     await t.mutation(api.sessions.nextQuestion, { sessionId });
     await t.mutation(api.sessions.showAnswers, { sessionId });
 
-    // First player answers - gets full elevation
-    const result1 = await t.mutation(api.answers.submit, {
-      questionId,
+    // First player answers
+    await t.mutation(api.answers.submit, {
+      questionId: firstQuestion._id,
       playerId: player1,
-      optionIndex: 1,
+      optionIndex: firstQuestion.correctOptionIndex!,
     });
 
-    expect(result1.correct).toBe(true);
-    expect(result1.elevationGain).toBe(100); // First answer = max elevation
-
-    // Second player answers immediately after - should still get high elevation
-    // (within grace period since mutations run quickly in tests)
-    const result2 = await t.mutation(api.answers.submit, {
-      questionId,
+    // Second player answers immediately after
+    await t.mutation(api.answers.submit, {
+      questionId: firstQuestion._id,
       playerId: player2,
-      optionIndex: 1,
+      optionIndex: firstQuestion.correctOptionIndex!,
     });
 
-    expect(result2.correct).toBe(true);
+    // Trigger reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check elevations on player records
+    const p1 = await t.query(api.players.get, { playerId: player1 });
+    const p2 = await t.query(api.players.get, { playerId: player2 });
+
+    // First player gets max elevation (125m)
+    expect(p1?.elevation).toBe(125);
     // Second player's time is calculated from first player's answer
     // In tests, mutations run almost instantly so should still get max or close to max
-    expect(result2.elevationGain).toBeGreaterThanOrEqual(50); // At least floor
-    expect(result2.elevationGain).toBeLessThanOrEqual(100); // At most max
+    expect(p2?.elevation).toBeGreaterThanOrEqual(60); // At least floor
+    expect(p2?.elevation).toBeLessThanOrEqual(125); // At most max
   });
 
   test("wrong answer gives no elevation", async () => {
@@ -110,13 +111,9 @@ describe("answers.submit", () => {
       hostId: "test-host",
     });
 
-    const questionId = await t.mutation(api.questions.create, {
-      sessionId,
-      text: "What is 2+2?",
-      options: [{ text: "3" }, { text: "4" }, { text: "5" }],
-      correctOptionIndex: 1,
-      timeLimit: 30,
-    });
+    // Get the first sample question (which has a correct answer)
+    const questions = await t.query(api.questions.listBySession, { sessionId });
+    const firstQuestion = questions[0]!;
 
     const playerId = await t.mutation(api.players.join, {
       sessionId,
@@ -127,16 +124,20 @@ describe("answers.submit", () => {
     await t.mutation(api.sessions.nextQuestion, { sessionId });
     await t.mutation(api.sessions.showAnswers, { sessionId });
 
-    // Submit wrong answer
-    const result = await t.mutation(api.answers.submit, {
-      questionId,
+    // Submit wrong answer (pick an answer that's not the correct one)
+    const wrongIndex = (firstQuestion.correctOptionIndex! + 1) % firstQuestion.options.length;
+    await t.mutation(api.answers.submit, {
+      questionId: firstQuestion._id,
       playerId,
-      optionIndex: 0, // Wrong answer
+      optionIndex: wrongIndex,
     });
 
-    expect(result.correct).toBe(false);
-    expect(result.elevationGain).toBe(0);
-    expect(result.newElevation).toBe(0);
+    // Trigger reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check elevation on player record - should still be 0
+    const player = await t.query(api.players.get, { playerId });
+    expect(player?.elevation).toBe(0);
   });
 
   test("cannot answer same question twice", async () => {
@@ -180,14 +181,20 @@ describe("answers.submit", () => {
     ).rejects.toThrowError("Already answered this question");
   });
 
-  test("poll mode (no correct answer) gives small elevation", async () => {
+  test("poll mode (no correct answer) gives participation elevation", async () => {
     const t = convexTest(schema, modules);
 
     const { sessionId } = await t.mutation(api.sessions.create, {
       hostId: "test-host",
     });
 
-    // Question without correctOptionIndex = poll mode
+    // Remove sample questions
+    const existingQuestions = await t.query(api.questions.listBySession, { sessionId });
+    for (const q of existingQuestions) {
+      await t.mutation(api.questions.remove, { questionId: q._id });
+    }
+
+    // Create poll question (no correctOptionIndex = poll mode)
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
       text: "Favorite color?",
@@ -204,15 +211,20 @@ describe("answers.submit", () => {
     await t.mutation(api.sessions.nextQuestion, { sessionId });
     await t.mutation(api.sessions.showAnswers, { sessionId });
 
-    const result = await t.mutation(api.answers.submit, {
+    await t.mutation(api.answers.submit, {
       questionId,
       playerId,
       optionIndex: 0,
     });
 
-    expect(result.correct).toBe(null);
-    expect(result.elevationGain).toBe(10); // Small participation bonus
-    expect(result.newElevation).toBe(10);
+    // Trigger reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check elevation on player record - poll mode gives participation points
+    const player = await t.query(api.players.get, { playerId });
+    // In poll mode, all answers are "correct" so they get the base elevation (125m)
+    // because the first answer sets the baseline timing
+    expect(player?.elevation).toBe(125);
   });
 
   test("elevation accumulates across multiple correct answers", async () => {
@@ -222,22 +234,11 @@ describe("answers.submit", () => {
       hostId: "test-host",
     });
 
-    // Add two questions
-    const q1 = await t.mutation(api.questions.create, {
-      sessionId,
-      text: "Q1",
-      options: [{ text: "A" }, { text: "B" }],
-      correctOptionIndex: 0,
-      timeLimit: 30,
-    });
-
-    const q2 = await t.mutation(api.questions.create, {
-      sessionId,
-      text: "Q2",
-      options: [{ text: "X" }, { text: "Y" }],
-      correctOptionIndex: 1,
-      timeLimit: 30,
-    });
+    // Get the first two sample questions
+    const questions = await t.query(api.questions.listBySession, { sessionId });
+    expect(questions.length).toBeGreaterThanOrEqual(2);
+    const q1 = questions[0]!;
+    const q2 = questions[1]!;
 
     const playerId = await t.mutation(api.players.join, {
       sessionId,
@@ -249,28 +250,38 @@ describe("answers.submit", () => {
     await t.mutation(api.sessions.showAnswers, { sessionId });
 
     // Answer first question correctly
-    const result1 = await t.mutation(api.answers.submit, {
-      questionId: q1,
+    await t.mutation(api.answers.submit, {
+      questionId: q1._id,
       playerId,
-      optionIndex: 0,
+      optionIndex: q1.correctOptionIndex!,
     });
 
-    expect(result1.correct).toBe(true);
-    const firstElevation = result1.newElevation;
+    // Reveal first question to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
 
-    // Move to next question (this resets phase to question_shown)
+    // Check first elevation
+    let player = await t.query(api.players.get, { playerId });
+    const firstElevation = player?.elevation ?? 0;
+    expect(firstElevation).toBeGreaterThan(0);
+
+    // Move to results then next question
+    await t.mutation(api.sessions.showResults, { sessionId });
     await t.mutation(api.sessions.nextQuestion, { sessionId });
     await t.mutation(api.sessions.showAnswers, { sessionId });
 
     // Answer second question correctly
-    const result2 = await t.mutation(api.answers.submit, {
-      questionId: q2,
+    await t.mutation(api.answers.submit, {
+      questionId: q2._id,
       playerId,
-      optionIndex: 1,
+      optionIndex: q2.correctOptionIndex!,
     });
 
-    expect(result2.correct).toBe(true);
-    expect(result2.newElevation).toBeGreaterThan(firstElevation);
+    // Reveal second question to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check accumulated elevation
+    player = await t.query(api.players.get, { playerId });
+    expect(player?.elevation).toBeGreaterThan(firstElevation);
   });
 });
 
@@ -579,16 +590,21 @@ describe("answers.getPlayersOnRopes", () => {
 
     // Answer first question correctly to gain elevation
     // Sample questions have correctOptionIndex set
-    const result1 = await t.mutation(api.answers.submit, {
+    await t.mutation(api.answers.submit, {
       questionId: q1._id,
       playerId,
       optionIndex: q1.correctOptionIndex!, // Use the correct answer
     });
 
-    expect(result1.correct).toBe(true);
-    expect(result1.newElevation).toBe(100); // First correct answer = 100m
+    // Reveal to calculate scores and update player elevation
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
 
-    // Move to next question (resets phase to question_shown)
+    // Verify player now has elevation
+    let player = await t.query(api.players.get, { playerId });
+    expect(player?.elevation).toBe(125); // First correct answer = 125m
+
+    // Move to results then next question (resets phase to question_shown)
+    await t.mutation(api.sessions.showResults, { sessionId });
     await t.mutation(api.sessions.nextQuestion, { sessionId });
     await t.mutation(api.sessions.showAnswers, { sessionId });
 
@@ -606,8 +622,8 @@ describe("answers.getPlayersOnRopes", () => {
     // Player should be on the rope for the wrong answer
     const wrongIndex = (q2.correctOptionIndex! + 1) % q2.options.length;
     expect(ropeState!.ropes[wrongIndex]!.length).toBe(1);
-    // Player should have their elevation (100m) recorded at time of answer
-    expect(ropeState!.ropes[wrongIndex]![0]!.elevationAtAnswer).toBe(100);
+    // Player should have their elevation (125m) recorded at time of answer
+    expect(ropeState!.ropes[wrongIndex]![0]!.elevationAtAnswer).toBe(125);
   });
 
   test("sorts players on rope by answeredAt (earliest first)", async () => {

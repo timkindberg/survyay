@@ -411,27 +411,29 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
     api.questions.listBySession,
     sessionId ? { sessionId } : "skip"
   );
-  const currentQuestion = useQuery(
-    api.questions.getCurrentQuestion,
-    sessionId ? { sessionId } : "skip"
-  );
-  const timingInfo = useQuery(
-    api.answers.getTimingInfo,
-    currentQuestion ? { questionId: currentQuestion._id } : "skip"
-  );
-
   // Rope climbing state for active question visualization
+  // Only subscribe when game is active (session exists and not in lobby/finished)
   const ropeClimbingState = useQuery(
     api.answers.getRopeClimbingState,
-    sessionId ? { sessionId } : "skip"
+    sessionId && session?.status === "active" ? { sessionId } : "skip"
   ) as RopeClimbingState | null | undefined;
 
-  const startSession = useMutation(api.sessions.start);
-  const nextQuestion = useMutation(api.sessions.nextQuestion);
+  // Derive timing info from ropeClimbingState to avoid duplicate subscription
+  const timingInfo = ropeClimbingState
+    ? {
+        firstAnsweredAt: ropeClimbingState.timing.firstAnsweredAt,
+        timeLimit: ropeClimbingState.question.timeLimit,
+        totalAnswers: ropeClimbingState.answeredCount,
+      }
+    : null;
+
+  // Find current question from the questions list using ropeClimbingState.question.id
+  // This avoids an extra subscription since we already have questions list
+  const currentQuestion = ropeClimbingState && questions
+    ? questions.find(q => q._id === ropeClimbingState.question.id) ?? null
+    : null;
+
   const finishSession = useMutation(api.sessions.finish);
-  const showAnswers = useMutation(api.sessions.showAnswers);
-  const revealAnswer = useMutation(api.sessions.revealAnswer);
-  const showResults = useMutation(api.sessions.showResults);
 
   // Auto-join session from shareable host link
   useEffect(() => {

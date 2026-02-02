@@ -559,7 +559,7 @@ export const RopeClimber = memo(function RopeClimber({
       style={{
         position: "absolute",
         left: x - size / 2,
-        top: y - size / 2,
+        top: y - size,  // Bottom-anchored: blob's feet at elevation Y
         zIndex: isCurrentPlayer ? 100 : revealState === "celebrating" ? 50 : 10,
         filter: getFilter(),
         pointerEvents: "none",

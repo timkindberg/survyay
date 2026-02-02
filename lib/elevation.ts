@@ -12,19 +12,19 @@ export const SUMMIT = 1000; // Max elevation (game ends)
 
 /**
  * Calculate base elevation score based on answer speed.
- * Linear formula: 100 - (responseTimeSeconds * 10)
+ * Linear formula: 125 - (responseTimeSeconds * 12.5)
  *
- * 0.0s:   100m
- * 1.0s:   90m
- * 5.0s:   50m
+ * 0.0s:   125m
+ * 1.0s:   112.5m
+ * 5.0s:   62.5m
  * 10s+:   0m
  *
  * @param answerTimeMs - Time to answer in milliseconds
- * @returns Base elevation score in meters (0-100)
+ * @returns Base elevation score in meters (0-125)
  */
 export function calculateBaseScore(answerTimeMs: number): number {
   const seconds = Math.max(0, answerTimeMs / 1000); // Handle negative times
-  const baseScore = Math.max(0, 100 - seconds * 10);
+  const baseScore = Math.max(0, 125 - seconds * 12.5);
   return Math.round(baseScore);
 }
 
@@ -81,10 +81,12 @@ export function calculateElevationGain(
 }
 
 /**
- * Calculate new elevation after gaining, capped at summit.
+ * Calculate new elevation after gaining.
+ * NOTE: Elevation is NOT capped at summit - players can exceed 1000m for bonus elevation.
+ * Summit placement is determined by when players first cross the 1000m threshold.
  */
 export function applyElevationGain(currentElevation: number, gain: number): number {
-  return Math.min(SUMMIT, currentElevation + gain);
+  return currentElevation + gain;
 }
 
 /**
@@ -96,28 +98,31 @@ export function hasReachedSummit(elevation: number): boolean {
 
 /**
  * Calculate dynamic maximum elevation gain for rubber-banding.
- * Prevents early summiting by distributing remaining distance across remaining questions.
+ * Only BOOSTS elevation cap when needed to help trailing players catch up.
+ * Never reduces below the default floor of 175m.
  *
  * Algorithm:
- * - targetMax = (distanceToSummit) / questionsRemaining
- * - Bounded by MIN_ELEVATION_CAP (50m) and MAX_ELEVATION_CAP (150m)
+ * - boostCap = (distanceToSummit) / questionsRemaining
+ * - Return max(175, boostCap) - 175m is the floor
+ *
+ * The leader elevation should be the HIGHEST non-summited player.
+ * Summited players (elevation >= 1000m) are excluded from this calculation.
  *
  * Examples:
- * - Leader at 700m, 3 questions left: (1000-700)/3 = 100m cap
- * - Leader at 900m, 1 question left: (1000-900)/1 = 100m cap
- * - Leader at 50m, 10 questions left: (1000-50)/10 = 95m cap
- * - Leader at 950m, 1 question left: (1000-950)/1 = 50m cap (floor applied)
+ * - Leader at 700m, 3 questions left: (1000-700)/3 = 100m -> returns 175m (floor)
+ * - Leader at 500m, 2 questions left: (1000-500)/2 = 250m -> returns 250m (boost)
+ * - Leader at 50m, 10 questions left: (1000-50)/10 = 95m -> returns 175m (floor)
  *
- * @param leaderElevation - Current elevation of the top player
+ * @param leaderElevation - Current elevation of the top NON-SUMMITED player
  * @param questionsRemaining - Number of questions left after current reveal
- * @returns Dynamic max elevation cap in meters (50-150m)
+ * @returns Dynamic max elevation cap in meters (minimum 175m, can boost higher)
  */
 export function calculateDynamicMax(
   leaderElevation: number,
   questionsRemaining: number
 ): number {
-  const MIN_CAP = 50;
-  const MAX_CAP = 150;
+  const MIN_CAP = 60;
+  const MAX_CAP = 175;
 
   // Edge case: no questions remaining (shouldn't happen, but handle gracefully)
   if (questionsRemaining <= 0) {
@@ -126,14 +131,14 @@ export function calculateDynamicMax(
 
   const distanceToSummit = SUMMIT - leaderElevation;
 
-  // If already at or above summit, no cap needed
+  // If already at or above summit, no cap needed (all non-summited players filtered out)
   if (distanceToSummit <= 0) {
     return MAX_CAP;
   }
 
-  // Calculate target max to spread remaining distance
-  const targetMax = distanceToSummit / questionsRemaining;
+  // Calculate boost cap to help trailing players catch up
+  const boostCap = distanceToSummit / questionsRemaining;
 
-  // Apply bounds
-  return Math.max(MIN_CAP, Math.min(MAX_CAP, Math.round(targetMax)));
+  // Only boost, never reduce - 175m is the floor
+  return Math.max(MAX_CAP, Math.round(boostCap));
 }

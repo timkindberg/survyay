@@ -57,6 +57,15 @@ export function SpectatorView({ sessionCode, onBack }: Props) {
   // Get players and question data once we have a session
   const sessionId = session?._id as Id<"sessions"> | undefined;
 
+  // Rope climbing state for active question visualization
+  // Placed before players query since we derive player data from it during gameplay
+  const ropeClimbingState = useQuery(
+    api.answers.getRopeClimbingState,
+    sessionId ? { sessionId } : "skip"
+  ) as RopeClimbingState | null | undefined;
+
+  // Always fetch players for accurate elevation display
+  // (SpectatorView only has 1 client, so this doesn't impact subscription limits)
   const players = useQuery(
     api.players.listBySession,
     sessionId ? { sessionId } : "skip"
@@ -72,21 +81,23 @@ export function SpectatorView({ sessionCode, onBack }: Props) {
     sessionId ? { sessionId } : "skip"
   );
 
-  const timingInfo = useQuery(
-    api.answers.getTimingInfo,
-    currentQuestion ? { questionId: currentQuestion._id } : "skip"
-  );
+  // Derived from ropeClimbingState - replaces separate timingInfo subscription
+  const timingInfo = useMemo(() => {
+    if (!ropeClimbingState) return null;
+    return {
+      firstAnsweredAt: ropeClimbingState.timing.firstAnsweredAt,
+      timeLimit: ropeClimbingState.timing.timeLimit,
+      totalAnswers: ropeClimbingState.answeredCount,
+    };
+  }, [ropeClimbingState]);
 
+  // Only fetch leaderboard when needed (results phase or game finished)
+  const questionPhaseFromState = ropeClimbingState?.questionPhase ?? null;
+  const needsLeaderboard = questionPhaseFromState === "results" || session?.status === "finished";
   const leaderboard = useQuery(
     api.players.getLeaderboard,
-    sessionId ? { sessionId } : "skip"
+    sessionId && needsLeaderboard ? { sessionId } : "skip"
   );
-
-  // Rope climbing state for active question visualization
-  const ropeClimbingState = useQuery(
-    api.answers.getRopeClimbingState,
-    sessionId ? { sessionId } : "skip"
-  ) as RopeClimbingState | null | undefined;
 
   // Play pop/giggle sounds when new players join the lobby
   useEffect(() => {

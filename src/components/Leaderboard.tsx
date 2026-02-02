@@ -6,6 +6,8 @@ interface LeaderboardPlayer {
   _id: string;
   name: string;
   elevation: number;
+  summitPlace?: number;
+  summitElevation?: number;
 }
 
 interface LeaderboardProps {
@@ -98,6 +100,21 @@ interface LeaderboardRowProps {
   compact: boolean;
 }
 
+/**
+ * Format elevation display, showing bonus elevation for summit players.
+ */
+function formatElevation(elevation: number): React.ReactNode {
+  if (elevation <= SUMMIT) {
+    return <>{elevation}m</>;
+  }
+  const bonus = elevation - SUMMIT;
+  return (
+    <>
+      {SUMMIT}m <span className="bonus-elevation">+{bonus}m!</span>
+    </>
+  );
+}
+
 function LeaderboardRow({ player, rank, isCurrentPlayer, compact }: LeaderboardRowProps) {
   const blobConfig = generateBlob(player.name);
   const atSummit = player.elevation >= SUMMIT;
@@ -115,9 +132,21 @@ function LeaderboardRow({ player, rank, isCurrentPlayer, compact }: LeaderboardR
       </div>
       <span className="leaderboard-name">{player.name}</span>
       <span className="leaderboard-elevation">
-        {player.elevation}m
-        {atSummit && <span className="summit-badge">Summit!</span>}
+        {formatElevation(player.elevation)}
+        {atSummit && player.summitPlace && (
+          <span className="summit-badge">{getOrdinal(player.summitPlace)} to Summit!</span>
+        )}
+        {atSummit && !player.summitPlace && <span className="summit-badge">Summit!</span>}
       </span>
     </li>
   );
+}
+
+/**
+ * Convert number to ordinal string (1st, 2nd, 3rd, etc.)
+ */
+function getOrdinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"] as const;
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]!);
 }

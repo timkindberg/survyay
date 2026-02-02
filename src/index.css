@@ -2836,22 +2836,22 @@ button.primary:disabled {
   }
 }
 
-/* Celebration bounce */
+/* Celebration bounce - MUST include translateY to maintain climb position */
 @keyframes blob-celebrate-success {
   0%, 100% {
-    transform: scale(1.1) rotate(0deg);
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.1) rotate(0deg);
   }
   20% {
-    transform: scale(1.2) rotate(-8deg);
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.2) rotate(-8deg);
   }
   40% {
-    transform: scale(1.15) rotate(6deg);
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.15) rotate(6deg);
   }
   60% {
-    transform: scale(1.2) rotate(-4deg);
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.2) rotate(-4deg);
   }
   80% {
-    transform: scale(1.15) rotate(3deg);
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.15) rotate(3deg);
   }
 }
 
@@ -3386,6 +3386,16 @@ button.primary:disabled {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+/* Bonus elevation display for players who exceeded summit */
+.bonus-elevation {
+  color: #fbbf24;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Separator for current player below top N */

@@ -187,9 +187,10 @@ describe("Full Session Integration", () => {
       return idx % 5 !== 0;
     });
 
-    // All correct answerers should have elevation = 10 * 100 = 1000 (capped at summit)
+    // All correct answerers should have elevation >= 1000 (summit reached, can exceed for bonus)
+    // With 125m per question * 10 questions, they get 1250m
     for (const player of correctAnswerers) {
-      expect(player.elevation).toBe(1000); // Summit!
+      expect(player.elevation).toBeGreaterThanOrEqual(1000); // Summit reached!
     }
   });
 
@@ -293,27 +294,31 @@ describe("Full Session Integration", () => {
     const correctIndex = questions[0]!.correctOptionIndex!;
 
     // Both players answer correctly
-    const result1 = await t.mutation(api.answers.submit, {
+    await t.mutation(api.answers.submit, {
       questionId: questions[0]!._id,
       playerId: playerIds[0]!,
       optionIndex: correctIndex,
     });
 
-    const result2 = await t.mutation(api.answers.submit, {
+    await t.mutation(api.answers.submit, {
       questionId: questions[0]!._id,
       playerId: playerIds[1]!,
       optionIndex: correctIndex,
     });
 
-    // First player gets max elevation (100m)
-    expect(result1.correct).toBe(true);
-    expect(result1.elevationGain).toBe(100);
-    expect(result1.newElevation).toBe(100);
+    // Reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check player elevations
+    const p1 = await t.query(api.players.get, { playerId: playerIds[0]! });
+    const p2 = await t.query(api.players.get, { playerId: playerIds[1]! });
+
+    // First player gets max elevation (125m)
+    expect(p1?.elevation).toBe(125);
 
     // Second player also gets high elevation (within grace period in tests)
-    expect(result2.correct).toBe(true);
-    expect(result2.elevationGain).toBeGreaterThanOrEqual(50);
-    expect(result2.elevationGain).toBeLessThanOrEqual(100);
+    expect(p2?.elevation).toBeGreaterThanOrEqual(60);
+    expect(p2?.elevation).toBeLessThanOrEqual(125);
   });
 
   it("wrong answers give zero elevation gain", async () => {
@@ -330,15 +335,18 @@ describe("Full Session Integration", () => {
     const correctIndex = questions[0]!.correctOptionIndex!;
     const wrongIndex = (correctIndex + 1) % 4;
 
-    const result = await t.mutation(api.answers.submit, {
+    await t.mutation(api.answers.submit, {
       questionId: questions[0]!._id,
       playerId: playerIds[0]!,
       optionIndex: wrongIndex,
     });
 
-    expect(result.correct).toBe(false);
-    expect(result.elevationGain).toBe(0);
-    expect(result.newElevation).toBe(0);
+    // Reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check player elevation - should still be 0
+    const player = await t.query(api.players.get, { playerId: playerIds[0]! });
+    expect(player?.elevation).toBe(0);
   });
 
   it("maintains leaderboard sorting throughout game", async () => {
@@ -393,7 +401,7 @@ describe("Full Session Integration", () => {
     }
   });
 
-  it("poll mode (no correct answer) gives small participation elevation", async () => {
+  it("poll mode (no correct answer) gives participation elevation", async () => {
     const t = convexTest(schema, modules);
 
     const { sessionId } = await t.mutation(api.sessions.create, {
@@ -426,20 +434,22 @@ describe("Full Session Integration", () => {
     const questions = await t.query(api.questions.listBySession, { sessionId });
 
     // All players answer different options
-    const results = [];
     for (let i = 0; i < playerIds.length; i++) {
-      const result = await t.mutation(api.answers.submit, {
+      await t.mutation(api.answers.submit, {
         questionId: questions[0]!._id,
         playerId: playerIds[i]!,
         optionIndex: i,
       });
-      results.push(result);
     }
 
-    // All should get participation elevation (10m)
-    for (const result of results) {
-      expect(result.correct).toBe(null); // No "correct" in poll mode
-      expect(result.elevationGain).toBe(10); // Small participation bonus
+    // Reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check player elevations - poll mode treats all as correct, first gets 100m
+    // In poll mode, all answers are "correct" so they all get elevation
+    for (const playerId of playerIds) {
+      const player = await t.query(api.players.get, { playerId });
+      expect(player?.elevation).toBeGreaterThan(0); // All get participation elevation
     }
   });
 
@@ -531,6 +541,9 @@ describe("Full Session Integration", () => {
       optionIndex: questions[1]!.correctOptionIndex!,
     });
 
+    // Reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
     // Late joiner should have gained elevation
     player = await t.query(api.players.get, { playerId: lateJoiner });
     expect(player?.elevation).toBeGreaterThan(0);
@@ -556,6 +569,9 @@ describe("Full Session Integration", () => {
         optionIndex: questions[0]!.correctOptionIndex!,
       });
     }
+
+    // Reveal to calculate scores
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
 
     // Verify players have elevation
     let leaderboard = await t.query(api.players.getLeaderboard, { sessionId });
@@ -714,10 +730,10 @@ describe("Full Session Integration", () => {
     expect(session?.status).toBe("finished");
   });
 
-  it("elevation caps at summit (1000m)", async () => {
+  it("elevation can exceed summit for bonus (no longer capped)", async () => {
     const t = convexTest(schema, modules);
 
-    // Create enough questions to potentially exceed summit
+    // Create enough questions to exceed summit
     const sessionId = await createTestSession(t, 15);
     const playerIds = await joinPlayers(t, sessionId, 1);
 
@@ -726,23 +742,37 @@ describe("Full Session Integration", () => {
 
     const questions = await t.query(api.questions.listBySession, { sessionId });
 
+    // Track elevations to verify progress
+    let previousElevation = 0;
+    let hasSummited = false;
+
     // Answer all questions correctly
     for (let i = 0; i < questions.length; i++) {
       await t.mutation(api.sessions.showAnswers, { sessionId });
 
-      const result = await t.mutation(api.answers.submit, {
+      await t.mutation(api.answers.submit, {
         questionId: questions[i]!._id,
         playerId: playerIds[0]!,
         optionIndex: questions[i]!.correctOptionIndex!,
       });
 
-      // After 10 correct answers (10 * 100 = 1000), should reach summit
-      if (i >= 9) {
-        expect(result.reachedSummit).toBe(true);
-        expect(result.newElevation).toBe(1000);
+      await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+      // Check elevation after reveal
+      const player = await t.query(api.players.get, { playerId: playerIds[0]! });
+
+      // Each correct answer should increase elevation (even above summit)
+      expect(player?.elevation).toBeGreaterThanOrEqual(previousElevation);
+
+      // Track when we first cross summit
+      if (!hasSummited && player!.elevation >= 1000) {
+        hasSummited = true;
+        // Should have summit placement now
+        expect(player?.summitPlace).toBe(1);
       }
 
-      await t.mutation(api.sessions.revealAnswer, { sessionId });
+      previousElevation = player?.elevation ?? 0;
+
       await t.mutation(api.sessions.showResults, { sessionId });
 
       if (i < questions.length - 1) {
@@ -750,9 +780,11 @@ describe("Full Session Integration", () => {
       }
     }
 
-    // Final elevation should be capped at 1000
+    // Final elevation should EXCEED 1000 (no longer capped)
     const player = await t.query(api.players.get, { playerId: playerIds[0]! });
-    expect(player?.elevation).toBe(1000);
+    // With 15 questions at 125m each = 1875m potential
+    expect(player?.elevation).toBeGreaterThan(1000);
+    expect(player?.summitPlace).toBe(1); // First to summit
   });
 
   it("enforces correct phase transition order", async () => {

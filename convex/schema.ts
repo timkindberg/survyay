@@ -39,8 +39,11 @@ export default defineSchema({
   players: defineTable({
     sessionId: v.id("sessions"),
     name: v.string(),
-    elevation: v.number(), // 0-1000m, summit at 1000
+    elevation: v.number(), // 0+ meters, summit at 1000m (can exceed for bonus)
     lastSeenAt: v.optional(v.number()), // Heartbeat timestamp for presence tracking
+    lastOptionIndex: v.optional(v.number()), // Cached last answer's option index for column positioning
+    summitPlace: v.optional(v.number()), // Locked placement (1, 2, 3...) when player crossed 1000m
+    summitElevation: v.optional(v.number()), // Elevation when crossed 1000m threshold
   }).index("by_session", ["sessionId"]),
 
   // Player answers

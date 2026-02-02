@@ -74,19 +74,19 @@ describe("dynamic elevation cap (rubber-banding)", () => {
       optionIndex: 0,
     });
 
-    // Reveal Q1: Both get baseScore=100, minorityBonus=0 (both chose same)
-    // Dynamic cap with 2 questions remaining: min(150, max(50, 1000/2)) = 150m
-    // Both should get capped at min(100, 150) = 100m
+    // Reveal Q1: Both get baseScore=125, minorityBonus=0 (both chose same)
+    // Dynamic cap: leader at 0, 2 questions remaining -> (1000-0)/2 = 500m (boost!)
+    // Both should get 125m (their actual gain is under the cap)
     await t.mutation(api.sessions.revealAnswer, { sessionId });
 
     let alice = await t.run(async (ctx) => await ctx.db.get(p1));
     let bob = await t.run(async (ctx) => await ctx.db.get(p2));
-    expect(alice!.elevation).toBe(100);
-    expect(bob!.elevation).toBeLessThanOrEqual(100);
+    expect(alice!.elevation).toBe(125);
+    expect(bob!.elevation).toBeLessThanOrEqual(125);
 
-    // Check that dynamic max was calculated and stored
+    // Dynamic cap boosted to 500m because (1000-0)/2 = 500 > 175
     const question1 = await t.run(async (ctx) => await ctx.db.get(q1));
-    expect(question1!.dynamicMaxElevation).toBe(150);
+    expect(question1!.dynamicMaxElevation).toBe(500);
 
     // Q2: Only Alice answers correctly (and fast)
     await t.mutation(api.sessions.nextQuestion, { sessionId });
@@ -102,23 +102,21 @@ describe("dynamic elevation cap (rubber-banding)", () => {
       optionIndex: 1, // Wrong
     });
 
-    // Reveal Q2: Alice would normally get baseScore=100 + minorityBonus=25 = 125m
-    // Dynamic cap with 1 question remaining and leader at 100m:
-    // min(150, max(50, (1000-100)/1)) = min(150, max(50, 900)) = 150m
-    // Alice gets capped at 125m (under cap, so no change)
-    // After Q2: Alice should be at 100 + 125 = 225m
+    // Reveal Q2: Alice would get baseScore=125 + minorityBonus=25 = 150m
+    // Dynamic cap: leader at 125m, 1 question remaining -> (1000-125)/1 = 875m (boost!)
+    // After Q2: Alice should be at 125 + 150 = 275m
     await t.mutation(api.sessions.revealAnswer, { sessionId });
 
     alice = await t.run(async (ctx) => await ctx.db.get(p1));
     bob = await t.run(async (ctx) => await ctx.db.get(p2));
-    expect(alice!.elevation).toBe(225); // 100 + 125
-    expect(bob!.elevation).toBe(100); // Still at 100 (wrong answer)
+    expect(alice!.elevation).toBe(275); // 125 + 150
+    expect(bob!.elevation).toBeLessThanOrEqual(125); // Still at ~125 (wrong answer)
 
     const question2 = await t.run(async (ctx) => await ctx.db.get(q2));
-    expect(question2!.dynamicMaxElevation).toBe(150);
+    expect(question2!.dynamicMaxElevation).toBe(875); // (1000-125)/1 = 875m boost
   });
 
-  test("dynamic cap prevents summiting before final question", async () => {
+  test("summit placement and bonus elevation tracking", async () => {
     const t = convexTest(schema, modules);
 
     const { sessionId } = await t.mutation(api.sessions.create, {
@@ -174,19 +172,20 @@ describe("dynamic elevation cap (rubber-banding)", () => {
       optionIndex: 0,
     });
 
-    // Reveal: Player would normally get 100m, but dynamic cap should limit this
-    // Leader at 900m, 1 question remaining: cap = max(50, min(150, (1000-900)/1)) = 100m
-    // Player gets capped at 100m
-    // After Q1: 900 + 100 = 1000m (exactly at summit)
+    // Reveal: Player gets baseScore=125 (no minority bonus with 1 player)
+    // Dynamic cap is 175m floor
+    // After Q1: 900 + 125 = 1025m (above summit!)
     await t.mutation(api.sessions.revealAnswer, { sessionId });
 
     let player = await t.run(async (ctx) => await ctx.db.get(playerId));
-    expect(player!.elevation).toBe(1000); // Reached summit on second-to-last question
+    expect(player!.elevation).toBe(1025); // Above summit (no longer capped)
+    expect(player!.summitPlace).toBe(1); // First to summit
+    expect(player!.summitElevation).toBe(1025); // Elevation when summited
 
     const question1 = await t.run(async (ctx) => await ctx.db.get(q1));
-    expect(question1!.dynamicMaxElevation).toBe(100);
+    expect(question1!.dynamicMaxElevation).toBe(175);
 
-    // Q2: Player is already at summit, so stays there
+    // Q2: Player is summited, gets uncapped bonus elevation
     await t.mutation(api.sessions.nextQuestion, { sessionId });
     await t.mutation(api.sessions.showAnswers, { sessionId });
     await t.mutation(api.answers.submit, {
@@ -198,14 +197,16 @@ describe("dynamic elevation cap (rubber-banding)", () => {
     await t.mutation(api.sessions.revealAnswer, { sessionId });
 
     player = await t.run(async (ctx) => await ctx.db.get(playerId));
-    expect(player!.elevation).toBe(1000); // Capped at summit
+    // Gets another 125m uncapped: 1025 + 125 = 1150m
+    expect(player!.elevation).toBe(1150);
+    expect(player!.summitPlace).toBe(1); // Still 1st (unchanged)
 
-    // Dynamic max should be 150 (leader already at summit)
+    // Dynamic max is 175 (no non-summited players)
     const question2 = await t.run(async (ctx) => await ctx.db.get(q2));
-    expect(question2!.dynamicMaxElevation).toBe(150);
+    expect(question2!.dynamicMaxElevation).toBe(175);
   });
 
-  test("minimum cap (50m) ensures players can always finish", async () => {
+  test("175m floor ensures players can always summit easily", async () => {
     const t = convexTest(schema, modules);
 
     const { sessionId } = await t.mutation(api.sessions.create, {
@@ -250,21 +251,21 @@ describe("dynamic elevation cap (rubber-banding)", () => {
     });
 
     // Reveal: Leader at 975m, 0 questions remaining after this
-    // Dynamic cap = max(50, min(150, (1000-975)/0)) = 150m (questionsRemaining=0 edge case)
-    // But on last question, questionsRemaining = totalQuestions - currentIndex - 1
-    // With 1 total question at index 0: 1 - 0 - 1 = 0
-    // So the calculation sees 0 remaining and returns MAX_CAP (150m)
+    // Dynamic cap = 175m (floor, questionsRemaining=0 edge case)
+    // Player gets 125m (instant answer, no minority bonus)
+    // Final: 975 + 125 = 1100m (above summit!)
     await t.mutation(api.sessions.revealAnswer, { sessionId });
 
     const player = await t.run(async (ctx) => await ctx.db.get(playerId));
-    expect(player!.elevation).toBe(1000); // Got 25m to reach summit, capped at summit
+    expect(player!.elevation).toBe(1100); // 975 + 125 = 1100m
+    expect(player!.summitPlace).toBe(1); // First to summit
 
     const question = await t.run(async (ctx) => await ctx.db.get(q1));
-    // When questionsRemaining=0 (this is the last question), we return MAX_CAP
-    expect(question!.dynamicMaxElevation).toBe(150);
+    // When questionsRemaining=0 (this is the last question), we return 175m floor
+    expect(question!.dynamicMaxElevation).toBe(175);
   });
 
-  test("cap tightens as game progresses", async () => {
+  test("cap maintains 175m floor throughout game", async () => {
     const t = convexTest(schema, modules);
 
     const { sessionId } = await t.mutation(api.sessions.create, {
@@ -281,7 +282,7 @@ describe("dynamic elevation cap (rubber-banding)", () => {
       });
     }
 
-    // Create 5 questions where leader advances by ~200m each
+    // Create 5 questions
     const questionIds = await Promise.all(
       Array.from({ length: 5 }, (_, i) =>
         t.mutation(api.questions.create, {
@@ -320,19 +321,17 @@ describe("dynamic elevation cap (rubber-banding)", () => {
       dynamicCaps.push(question!.dynamicMaxElevation!);
     }
 
-    // Verify caps were calculated (should generally decrease or stay bounded)
+    // Verify caps were calculated (should always be at least 175m floor)
     expect(dynamicCaps.length).toBe(5);
     for (const cap of dynamicCaps) {
-      expect(cap).toBeGreaterThanOrEqual(50);
-      expect(cap).toBeLessThanOrEqual(150);
+      expect(cap).toBeGreaterThanOrEqual(175); // New floor
     }
 
-    // First question should have loose cap (many questions remaining)
-    // Last question depends on leader elevation
-    expect(dynamicCaps[0]).toBeGreaterThanOrEqual(100); // Should be near max initially
+    // First cap: leader at 0, 4 questions remaining -> (1000-0)/4 = 250m (boost)
+    expect(dynamicCaps[0]).toBe(250);
   });
 
-  test("all players get same cap regardless of performance", async () => {
+  test("all non-summited players get same cap based on leader", async () => {
     const t = convexTest(schema, modules);
 
     const { sessionId } = await t.mutation(api.sessions.create, {
@@ -406,18 +405,89 @@ describe("dynamic elevation cap (rubber-banding)", () => {
       questionId: q1,
     });
 
-    // All should get same cap
+    // All should get same cap (175m floor)
     const question = await t.run(async (ctx) => await ctx.db.get(q1));
     const cap = question!.dynamicMaxElevation!;
 
-    // Verify cap was calculated based on leader (700m)
+    // Verify cap was calculated as 175m floor
     // 0 questions remaining after this one (it's the only question)
-    // cap = max(50, min(150, (1000-700)/0)) = 150 (edge case handler)
-    expect(cap).toBe(150);
+    // cap = 175m (floor)
+    expect(cap).toBe(175);
 
     // All elevation gains should be <= cap
     for (const answer of answers) {
       expect(answer.elevationGain).toBeLessThanOrEqual(cap);
     }
+  });
+
+  test("dense ranking for summit placement", async () => {
+    const t = convexTest(schema, modules);
+
+    const { sessionId } = await t.mutation(api.sessions.create, {
+      hostId: "test-host",
+    });
+
+    // Delete all auto-generated sample questions
+    const sampleQuestions = await t.query(api.questions.listBySession, {
+      sessionId,
+    });
+    for (const q of sampleQuestions) {
+      await t.mutation(api.questions.remove, {
+        questionId: q._id,
+      });
+    }
+
+    const q1 = await t.mutation(api.questions.create, {
+      sessionId,
+      text: "Q1",
+      options: [{ text: "A" }, { text: "B" }],
+      correctOptionIndex: 0,
+      timeLimit: 30,
+    });
+
+    // Create 4 players all close to summit
+    const p1 = await t.mutation(api.players.join, { sessionId, name: "Player1" });
+    const p2 = await t.mutation(api.players.join, { sessionId, name: "Player2" });
+    const p3 = await t.mutation(api.players.join, { sessionId, name: "Player3" });
+    const p4 = await t.mutation(api.players.join, { sessionId, name: "Player4" });
+
+    // Set elevations so they all summit with different final elevations
+    // (using elevationAtAnswer captured at submit time)
+    await t.run(async (ctx) => {
+      await ctx.db.patch(p1, { elevation: 970 }); // Will reach 970 + 125 = 1095
+      await ctx.db.patch(p2, { elevation: 925 }); // Will reach 925 + 125 = 1050
+      await ctx.db.patch(p3, { elevation: 925 }); // Will reach 925 + 125 = 1050 (same as p2)
+      await ctx.db.patch(p4, { elevation: 905 }); // Will reach 905 + 125 = 1030
+    });
+
+    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.showAnswers, { sessionId });
+
+    // All answer correctly (instant)
+    await t.mutation(api.answers.submit, { questionId: q1, playerId: p1, optionIndex: 0 });
+    await t.mutation(api.answers.submit, { questionId: q1, playerId: p2, optionIndex: 0 });
+    await t.mutation(api.answers.submit, { questionId: q1, playerId: p3, optionIndex: 0 });
+    await t.mutation(api.answers.submit, { questionId: q1, playerId: p4, optionIndex: 0 });
+
+    await t.mutation(api.sessions.revealAnswer, { sessionId });
+
+    // Check summit placements using DENSE RANKING
+    const player1 = await t.run(async (ctx) => await ctx.db.get(p1));
+    const player2 = await t.run(async (ctx) => await ctx.db.get(p2));
+    const player3 = await t.run(async (ctx) => await ctx.db.get(p3));
+    const player4 = await t.run(async (ctx) => await ctx.db.get(p4));
+
+    // All should have summited
+    expect(player1!.elevation).toBeGreaterThanOrEqual(1000);
+    expect(player2!.elevation).toBeGreaterThanOrEqual(1000);
+    expect(player3!.elevation).toBeGreaterThanOrEqual(1000);
+    expect(player4!.elevation).toBeGreaterThanOrEqual(1000);
+
+    // Check dense ranking: 1st (highest), 2nd (tied), 2nd (tied), 3rd
+    expect(player1!.summitPlace).toBe(1); // Highest elevation
+    expect(player2!.summitPlace).toBe(2); // Tied for second
+    expect(player3!.summitPlace).toBe(2); // Tied for second (same elevation)
+    expect(player4!.summitPlace).toBe(3); // Third (dense ranking, no skip)
   });
 });

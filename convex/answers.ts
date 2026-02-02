@@ -79,6 +79,11 @@ export const submit = mutation({
       elevationAtAnswer: currentElevation,
     });
 
+    // Cache the last option index on the player for column positioning
+    await ctx.db.patch(args.playerId, {
+      lastOptionIndex: args.optionIndex,
+    });
+
     // NOTE: Elevation is now calculated during reveal phase to include minority bonus
     // Just acknowledge the answer was received
     return {
@@ -229,6 +234,7 @@ export interface PlayerOnRope {
   playerName: string;
   elevationAtAnswer: number; // Where they grabbed the rope
   answeredAt: number; // For ordering on the rope
+  elevationGain?: number; // Populated after reveal (base score + minority bonus, possibly capped)
 }
 
 /**
@@ -280,6 +286,7 @@ export const getPlayersOnRopes = query({
           playerName: player.name,
           elevationAtAnswer: answer.elevationAtAnswer,
           answeredAt: answer.answeredAt,
+          elevationGain: answer.elevationGain, // Populated after reveal
         };
         if (answer.optionIndex >= 0 && answer.optionIndex < ropes.length) {
           ropes[answer.optionIndex]!.push(ropePlayer);
@@ -426,22 +433,8 @@ export const getRopeClimbingState = query({
 
     const notAnswered: { playerId: string; playerName: string; elevation: number; lastOptionIndex: number | null }[] = [];
 
-    // Get all answers for all players (to find their last answer for column positioning)
-    const allAnswersForPlayers = await ctx.db
-      .query("answers")
-      .collect();
-
-    // Build a map of playerId -> most recent answer (by answeredAt)
-    const lastAnswerMap = new Map<string, { optionIndex: number; answeredAt: number }>();
-    for (const answer of allAnswersForPlayers) {
-      const existing = lastAnswerMap.get(answer.playerId);
-      if (!existing || answer.answeredAt > existing.answeredAt) {
-        lastAnswerMap.set(answer.playerId, {
-          optionIndex: answer.optionIndex,
-          answeredAt: answer.answeredAt,
-        });
-      }
-    }
+    // lastOptionIndex is now cached on the player record - no need to query all answers
+    // (Updated in answers.submit mutation)
 
     // Group players by their answer
     for (const player of players) {
@@ -452,18 +445,18 @@ export const getRopeClimbingState = query({
           playerName: player.name,
           elevationAtAnswer: answer.elevationAtAnswer,
           answeredAt: answer.answeredAt,
+          elevationGain: answer.elevationGain, // Populated after reveal
         };
         if (answer.optionIndex >= 0 && answer.optionIndex < ropes.length) {
           ropes[answer.optionIndex]!.players.push(ropePlayer);
         }
       } else {
-        // Player hasn't answered current question - get their last answer's optionIndex
-        const lastAnswer = lastAnswerMap.get(player._id);
+        // Player hasn't answered current question - use cached lastOptionIndex from player record
         notAnswered.push({
           playerId: player._id,
           playerName: player.name,
           elevation: player.elevation ?? 0,
-          lastOptionIndex: lastAnswer?.optionIndex ?? null,
+          lastOptionIndex: player.lastOptionIndex ?? null,
         });
       }
     }

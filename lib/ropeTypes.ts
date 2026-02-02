@@ -26,6 +26,8 @@ export interface PlayerOnRope {
   elevationAtAnswer: number;
   /** Timestamp when they answered (earlier = higher on rope visually) */
   answeredAt: number;
+  /** Elevation gain from this answer (populated after reveal, includes minority bonus) */
+  elevationGain?: number;
 }
 
 /**
