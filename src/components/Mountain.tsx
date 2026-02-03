@@ -187,17 +187,21 @@ export function Mountain({
   }, [mode, currentPlayerElevation, ropeClimbingState, currentPlayerId]);
 
   // Convert elevation to Y coordinate (higher elevation = lower Y)
-  // VISUAL CAP: Players can earn bonus elevation above 1000m for scoring,
-  // but their visual position is capped at the summit line.
+  // This is the base conversion used for mountain structure (tip, snow cap, etc.)
   const elevationToY = (elevation: number): number => {
-    // Cap visual elevation at SUMMIT - internal elevation can exceed 1000m
-    // but the blob should never appear above the summit line
-    const visualElevation = Math.min(elevation, SUMMIT);
     const range = maxElevation - minElevation;
     const padding = 20;
     const usableHeight = height - padding * 2;
-    const normalized = (visualElevation - minElevation) / range;
+    const normalized = (elevation - minElevation) / range;
     return height - padding - normalized * usableHeight;
+  };
+
+  // VISUAL CAP: For player blob positioning only - players can earn bonus
+  // elevation above 1000m for scoring, but their visual position is capped
+  // at the summit line so they don't float above the mountain.
+  const elevationToYCapped = (elevation: number): number => {
+    const visualElevation = Math.min(elevation, SUMMIT);
+    return elevationToY(visualElevation);
   };
 
   // Get visible checkpoints
@@ -270,7 +274,7 @@ export function Mountain({
           positions.push({
             player: p,
             x: startX + i * blobSpacing,
-            y: elevationToY(p.elevation),
+            y: elevationToYCapped(p.elevation),
             isCurrentPlayer: p.id === currentPlayerId,
             isCluster: false,
           });
@@ -294,7 +298,7 @@ export function Mountain({
           positions.push({
             player: p,
             x: Math.max(sizeConfig.size, Math.min(width - sizeConfig.size, startX + col * blobSpacing + rowOffset)),
-            y: elevationToY(p.elevation) + row * rowHeight - (numRows - 1) * rowHeight / 2,
+            y: elevationToYCapped(p.elevation) + row * rowHeight - (numRows - 1) * rowHeight / 2,
             isCurrentPlayer: p.id === currentPlayerId,
             isCluster: band.length > maxPerRow,
           });
@@ -451,6 +455,7 @@ export function Mountain({
           width={width}
           height={height}
           elevationToY={elevationToY}
+          elevationToYCapped={elevationToYCapped}
           minElevation={minElevation}
           maxElevation={maxElevation}
           sizeConfig={sizeConfig}
@@ -488,6 +493,7 @@ function RopesOverlay({
   width,
   height,
   elevationToY,
+  elevationToYCapped,
   minElevation,
   maxElevation,
   sizeConfig,
@@ -501,6 +507,8 @@ function RopesOverlay({
   width: number;
   height: number;
   elevationToY: (elevation: number) => number;
+  /** Capped version for player blob positioning - caps elevation at SUMMIT */
+  elevationToYCapped: (elevation: number) => number;
   minElevation: number;
   maxElevation: number;
   sizeConfig: { size: number; spacing: number; showName: boolean; nameSize: number };
@@ -859,7 +867,7 @@ function RopesOverlay({
           key={ropeIndex}
           ropeData={rope}
           ropeX={ropeXPositions[ropeIndex] ?? width / 2}
-          elevationToY={elevationToY}
+          elevationToYCapped={elevationToYCapped}
           sizeConfig={sizeConfig}
           currentPlayerId={currentPlayerId}
           ropeIndex={ropeIndex}
@@ -870,7 +878,7 @@ function RopesOverlay({
 
       {/* Players who haven't answered yet - show at their last column position */}
       {notAnswered.map((player, index) => {
-        const y = elevationToY(player.elevation);
+        const y = elevationToYCapped(player.elevation);
         // Position based on last answer's column, or spread out if no previous answer
         let x: number;
         if (player.lastOptionIndex !== null && player.lastOptionIndex >= 0) {
@@ -910,7 +918,7 @@ function RopesOverlay({
       })}
 
       {/* Celebration particles for correct rope - only during complete phase */}
-      {revealPhase === "complete" && <CelebrationParticles ropes={ropes} ropeXPositions={ropeXPositions} elevationToY={elevationToY} />}
+      {revealPhase === "complete" && <CelebrationParticles ropes={ropes} ropeXPositions={ropeXPositions} elevationToYCapped={elevationToYCapped} />}
     </>
   );
 }
@@ -921,11 +929,11 @@ function RopesOverlay({
 function CelebrationParticles({
   ropes,
   ropeXPositions,
-  elevationToY,
+  elevationToYCapped,
 }: {
   ropes: RopeData[];
   ropeXPositions: number[];
-  elevationToY: (elevation: number) => number;
+  elevationToYCapped: (elevation: number) => number;
 }) {
   const [particles, setParticles] = useState<
     Array<{ id: number; x: number; y: number; tx: number; ty: number; color: string }>
@@ -941,7 +949,7 @@ function CelebrationParticles({
 
       rope.players.forEach((player) => {
         const x = ropeXPositions[ropeIndex] ?? 0;
-        const y = elevationToY(player.elevationAtAnswer);
+        const y = elevationToYCapped(player.elevationAtAnswer);
 
         // Generate 8-12 particles per player
         const numParticles = 8 + Math.floor(Math.random() * 5);
@@ -994,7 +1002,7 @@ function CelebrationParticles({
 const RopeClimbersGroup = memo(function RopeClimbersGroup({
   ropeData,
   ropeX,
-  elevationToY,
+  elevationToYCapped,
   sizeConfig,
   currentPlayerId,
   ropeIndex,
@@ -1003,7 +1011,7 @@ const RopeClimbersGroup = memo(function RopeClimbersGroup({
 }: {
   ropeData: RopeData;
   ropeX: number;
-  elevationToY: (elevation: number) => number;
+  elevationToYCapped: (elevation: number) => number;
   sizeConfig: { size: number; spacing: number; showName: boolean; nameSize: number };
   currentPlayerId?: string;
   ropeIndex: number;
@@ -1057,7 +1065,7 @@ const RopeClimbersGroup = memo(function RopeClimbersGroup({
     <>
       {players.map((player, playerIndex) => {
         // Calculate Y position based on elevation when they answered
-        const baseY = elevationToY(player.elevationAtAnswer);
+        const baseY = elevationToYCapped(player.elevationAtAnswer);
 
         // Offset players vertically if multiple on same rope
         // Earlier answerers (lower index) should be HIGHER on the rope
