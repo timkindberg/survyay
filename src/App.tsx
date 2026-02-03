@@ -12,6 +12,7 @@ function getInitialMode(): {
   mode: Mode;
   spectatorCode?: string;
   playCode?: string;
+  playName?: string;
   hostCode?: string;
   hostToken?: string;
 } {
@@ -31,6 +32,16 @@ function getInitialMode(): {
   const spectateMatch = path.match(/^\/spectate\/([A-Za-z]{4})$/);
   if (spectateMatch) {
     return { mode: "spectator", spectatorCode: spectateMatch[1]!.toUpperCase() };
+  }
+
+  // /play/:code/:name - Player view with code and name from URL
+  const playCodeNameMatch = path.match(/^\/play\/([A-Za-z]{4})\/(.+)$/);
+  if (playCodeNameMatch) {
+    return {
+      mode: "player",
+      playCode: playCodeNameMatch[1]!.toUpperCase(),
+      playName: decodeURIComponent(playCodeNameMatch[2]!),
+    };
   }
 
   // /play/:code - Player view with prefilled code
@@ -64,6 +75,7 @@ export function App() {
   const [mode, setMode] = useState<Mode>(initialState.mode);
   const [spectatorCode, setSpectatorCode] = useState<string | null>(initialState.spectatorCode ?? null);
   const [playCode, setPlayCode] = useState<string | null>(initialState.playCode ?? null);
+  const [playName, setPlayName] = useState<string | null>(initialState.playName ?? null);
   const [hostCode, setHostCode] = useState<string | null>(initialState.hostCode ?? null);
   const [hostToken, setHostToken] = useState<string | null>(initialState.hostToken ?? null);
 
@@ -76,13 +88,12 @@ export function App() {
     }
     if (mode === "select") {
       window.history.replaceState({}, "", "/");
-    } else if (mode === "admin") {
-      window.history.replaceState({}, "", "/admin");
     } else if (mode === "player") {
       window.history.replaceState({}, "", "/play");
     } else if (mode === "blobs") {
       window.history.replaceState({}, "", "/blobs");
     }
+    // admin URLs are managed by AdminView directly (/admin or /host/:code/:token)
     // spectator and spectator-join URLs are handled separately
   }, [mode, isInitialRender]);
 
@@ -95,7 +106,7 @@ export function App() {
   }
 
   if (mode === "player") {
-    return <PlayerView onBack={goHome} initialCode={playCode} />;
+    return <PlayerView onBack={goHome} initialCode={playCode} initialName={playName} />;
   }
 
   if (mode === "spectator" && spectatorCode) {
@@ -140,15 +151,15 @@ export function App() {
       <h1>Blobby: Summit</h1>
       <p>Race your blob to the mountain top!</p>
       <div className="mode-select">
-        <button onClick={() => setMode("admin")}>Host a Session</button>
-        <button onClick={() => setMode("player")}>Join as Player</button>
-        <button onClick={() => setMode("spectator-join")} style={{ background: "#8b5cf6" }}>
-          Spectator View
+        <button className="btn-primary" onClick={() => setMode("player")}>Join Game</button>
+        <button className="btn-secondary" onClick={() => setMode("spectator-join")}>
+          Spectate
         </button>
-        <button onClick={() => setMode("blobs")} style={{ background: "#10b981" }}>
-          Blob Gallery
-        </button>
+        <button className="btn-ghost" onClick={() => setMode("admin")}>Host a Game</button>
       </div>
+      <a href="#" className="blob-gallery-link" onClick={(e) => { e.preventDefault(); setMode("blobs"); }}>
+        View Blob Gallery
+      </a>
     </div>
   );
 }

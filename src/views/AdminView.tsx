@@ -462,6 +462,21 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
     }
   }, [sessionFromLink, sessionId, initialCode, initialToken]);
 
+  // Update URL when session changes (to make it bookmarkable)
+  useEffect(() => {
+    if (session && session.secretToken) {
+      const expectedPath = `/host/${session.code}/${session.secretToken}`;
+      if (window.location.pathname !== expectedPath) {
+        window.history.replaceState({}, "", expectedPath);
+      }
+    } else if (!sessionId) {
+      // No session selected, go back to /admin
+      if (window.location.pathname !== "/admin") {
+        window.history.replaceState({}, "", "/admin");
+      }
+    }
+  }, [session, sessionId]);
+
   async function handleCreate() {
     try {
       const result = await createSession({ hostId });
@@ -563,8 +578,8 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
   async function copyHostLink() {
     if (!session || !session.secretToken) return;
     try {
-      const hostLink = `${window.location.origin}/host/${session.code}/${session.secretToken}`;
-      await navigator.clipboard.writeText(hostLink);
+      // Copy the current page URL (which should be the host link)
+      await navigator.clipboard.writeText(window.location.href);
       setCopiedHostLink(true);
       setTimeout(() => setCopiedHostLink(false), 2000);
     } catch {

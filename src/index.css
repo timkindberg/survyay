@@ -84,6 +84,56 @@ input[type="text"]:focus {
   margin: 40px auto;
 }
 
+/* Button variants for home screen */
+.mode-select .btn-primary {
+  background: #6366f1;
+  color: white;
+  font-size: 1.1rem;
+  padding: 16px 24px;
+  font-weight: 600;
+}
+
+.mode-select .btn-primary:hover {
+  background: #4f46e5;
+}
+
+.mode-select .btn-secondary {
+  background: #e0e7ff;
+  color: #3730a3;
+  font-weight: 500;
+}
+
+.mode-select .btn-secondary:hover {
+  background: #c7d2fe;
+}
+
+.mode-select .btn-ghost {
+  background: transparent;
+  color: #6366f1;
+  border: 2px solid #6366f1;
+  font-weight: 500;
+}
+
+.mode-select .btn-ghost:hover {
+  background: #f0f0ff;
+}
+
+/* Blob gallery link */
+.blob-gallery-link {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.blob-gallery-link:hover {
+  color: #475569;
+  text-decoration: underline;
+}
+
 /* Views */
 .host-view,
 .player-view {

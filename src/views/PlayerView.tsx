@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -66,9 +66,10 @@ function getAnimationDelay(name: string): string {
 interface Props {
   onBack: () => void;
   initialCode?: string | null;
+  initialName?: string | null;
 }
 
-export function PlayerView({ onBack, initialCode }: Props) {
+export function PlayerView({ onBack, initialCode, initialName }: Props) {
   const [joinCode, setJoinCode] = useState(initialCode ?? "");
   const [playerName, setPlayerName] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -122,6 +123,9 @@ export function PlayerView({ onBack, initialCode }: Props) {
       // If valid, we keep storedSession to show the rejoin UI
     }
   }, [storedSession, checkStoredSession]);
+
+  // Ref to track if we've tried auto-rejoining (for bookmarkable URLs)
+  const hasTriedAutoRejoin = useRef(false);
 
   // Auto-focus name input when code is prefilled from URL
   useEffect(() => {
@@ -336,12 +340,14 @@ export function PlayerView({ onBack, initialCode }: Props) {
       setSessionId(getByCode._id);
       setStoredSession(null); // Clear stored session state since we're now joined
       saveSession(id, getByCode._id, getByCode.code, trimmedName);
+      // Update URL to bookmarkable /play/:CODE/:NAME format
+      window.history.replaceState({}, "", `/play/${getByCode.code}/${encodeURIComponent(trimmedName)}`);
     } catch (err) {
       setError(getFriendlyErrorMessage(err));
     }
   }
 
-  async function handleRejoin() {
+  const handleRejoin = useCallback(async () => {
     if (!storedSession) return;
     setIsRejoining(true);
     setError("");
@@ -352,6 +358,8 @@ export function PlayerView({ onBack, initialCode }: Props) {
       });
       setPlayerId(storedSession.playerId as Id<"players">);
       setSessionId(storedSession.sessionId as Id<"sessions">);
+      // Update URL to bookmarkable /play/:CODE/:NAME format
+      window.history.replaceState({}, "", `/play/${storedSession.sessionCode}/${encodeURIComponent(storedSession.playerName)}`);
       setStoredSession(null);
     } catch (err) {
       // Session/player no longer valid - clear and show join form
@@ -361,7 +369,34 @@ export function PlayerView({ onBack, initialCode }: Props) {
     } finally {
       setIsRejoining(false);
     }
-  }
+  }, [storedSession, reactivatePlayer]);
+
+  // Auto-rejoin when URL has code matching localStorage session
+  // This makes the URL bookmarkable - refreshing auto-rejoins
+  useEffect(() => {
+    // Only auto-rejoin if:
+    // 1. We have an initialCode from URL (e.g., /play/ABCD or /play/ABCD/PlayerName)
+    // 2. We have a valid stored session
+    // 3. The stored session code matches the URL code
+    // 4. If URL has a name, it must match the stored session name
+    // 5. We haven't already tried auto-rejoining
+    // 6. We're not already rejoining or have a playerId
+    const codeMatches = initialCode && storedSession &&
+      storedSession.sessionCode.toUpperCase() === initialCode.toUpperCase();
+    const nameMatches = !initialName || storedSession?.playerName === initialName;
+
+    if (
+      codeMatches &&
+      nameMatches &&
+      checkStoredSession &&
+      !hasTriedAutoRejoin.current &&
+      !isRejoining &&
+      !playerId
+    ) {
+      hasTriedAutoRejoin.current = true;
+      handleRejoin();
+    }
+  }, [initialCode, initialName, storedSession, checkStoredSession, isRejoining, playerId, handleRejoin]);
 
   function handleStartFresh() {
     clearSession();
