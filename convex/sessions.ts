@@ -1,6 +1,13 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { getRandomQuestions, ALL_CATEGORIES, type QuestionCategory } from "./sampleQuestions";
+import {
+  getRandomQuestions,
+  ALL_CATEGORIES,
+  CATEGORY_LABELS,
+  getQuestionCountByCategory,
+  getTotalQuestionCount,
+  type QuestionCategory,
+} from "./sampleQuestions";
 import { calculateElevationGain, calculateDynamicMax, SUMMIT } from "../lib/elevation";
 
 // Validator for question categories
@@ -646,9 +653,6 @@ export const regenerateQuestions = mutation({
 export const getCategoryInfo = query({
   args: {},
   handler: async () => {
-    // Import here to avoid circular dependencies
-    const { CATEGORY_LABELS, getQuestionCountByCategory, getTotalQuestionCount } = await import("./sampleQuestions");
-
     return {
       categories: ALL_CATEGORIES,
       labels: CATEGORY_LABELS,
