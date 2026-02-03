@@ -198,6 +198,24 @@ export const finish = mutation({
   },
 });
 
+// End game early - admin can finish the game at any point during active gameplay
+export const endGameEarly = mutation({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) throw new Error("Session not found");
+    if (session.status !== "active") {
+      throw new Error("Can only end an active game");
+    }
+
+    // Set status to finished and clear question phase
+    await ctx.db.patch(args.sessionId, {
+      status: "finished",
+      questionPhase: undefined,
+    });
+  },
+});
+
 // Get all sessions for a host (not finished)
 export const listByHost = query({
   args: { hostId: v.string() },

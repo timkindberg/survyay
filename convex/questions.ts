@@ -302,3 +302,43 @@ export const importQuestions = mutation({
     return { success: true, count: args.questions.length };
   },
 });
+
+// Shuffle questions in random order
+export const shuffleQuestions = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) throw new Error("Session not found");
+    if (session.status !== "lobby") throw new Error("Can only shuffle questions in lobby state");
+
+    // Get all questions
+    const questions = await ctx.db
+      .query("questions")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    if (questions.length < 2) {
+      // Nothing to shuffle
+      return { success: true };
+    }
+
+    // Fisher-Yates shuffle algorithm to generate random order indices
+    const indices = questions.map((_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j]!, indices[i]!];
+    }
+
+    // Update each question with new order value
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      if (question) {
+        await ctx.db.patch(question._id, { order: indices[i] });
+      }
+    }
+
+    return { success: true };
+  },
+});

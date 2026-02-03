@@ -36,7 +36,8 @@ function useHostAction(
   sessionStatus: SessionStatus | undefined,
   questionPhase: QuestionPhase,
   enabledQuestionCount: number,
-  currentQuestionIndex: number
+  currentQuestionIndex: number,
+  onBeforeStart?: () => Promise<void>
 ): HostActionConfig | null {
   const startSession = useMutation(api.sessions.start);
   const showAnswers = useMutation(api.sessions.showAnswers);
@@ -53,7 +54,12 @@ function useHostAction(
     case "lobby":
       return {
         label: `Start Game (${enabledQuestionCount} questions)`,
-        action: async () => { await startSession({ sessionId }); },
+        action: async () => {
+          if (onBeforeStart) {
+            await onBeforeStart();
+          }
+          await startSession({ sessionId });
+        },
         disabled: enabledQuestionCount === 0,
       };
 
@@ -186,12 +192,14 @@ function HostActionButton({
   questionPhase,
   enabledQuestionCount,
   currentQuestionIndex,
+  onBeforeStart,
 }: {
   sessionId: Id<"sessions">;
   sessionStatus: SessionStatus;
   questionPhase: QuestionPhase;
   enabledQuestionCount: number;
   currentQuestionIndex: number;
+  onBeforeStart?: () => Promise<void>;
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isBackLoading, setIsBackLoading] = useState(false);
@@ -203,7 +211,8 @@ function HostActionButton({
     sessionStatus,
     questionPhase,
     enabledQuestionCount,
-    currentQuestionIndex
+    currentQuestionIndex,
+    onBeforeStart
   );
 
   const backConfig = useBackAction(
@@ -381,6 +390,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
   const [selectedCategories, setSelectedCategories] = useState<QuestionCategory[]>([]);
   const [questionCount, setQuestionCount] = useState(10);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [shuffleOnStart, setShuffleOnStart] = useState(false);
   const confirmation = useConfirmation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -388,6 +398,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
   const deleteSession = useMutation(api.sessions.remove);
   const backToLobby = useMutation(api.sessions.backToLobby);
   const regenerateQuestions = useMutation(api.sessions.regenerateQuestions);
+  const shuffleQuestionsMutation = useMutation(api.questions.shuffleQuestions);
   const exportQuestionsQuery = useQuery(
     api.questions.exportQuestions,
     sessionId ? { sessionId } : "skip"
@@ -439,7 +450,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
     ? questions.find(q => q._id === ropeClimbingState.question.id) ?? null
     : null;
 
-  const finishSession = useMutation(api.sessions.finish);
+  const endGameEarly = useMutation(api.sessions.endGameEarly);
 
   // Auto-join session from shareable host link
   useEffect(() => {
@@ -493,6 +504,25 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
       onConfirm: async () => {
         try {
           await backToLobby({ sessionId });
+          setAdminError(null);
+        } catch (err) {
+          setAdminError(getFriendlyErrorMessage(err));
+        }
+      },
+    });
+  }
+
+  function handleEndGameEarly() {
+    if (!sessionId) return;
+    confirmation.confirm({
+      title: "End Game Early",
+      message: "Are you sure you want to end the game early? This will show the final leaderboard.",
+      confirmText: "End Game Early",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await endGameEarly({ sessionId });
           setAdminError(null);
         } catch (err) {
           setAdminError(getFriendlyErrorMessage(err));
@@ -758,11 +788,11 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
                 Reset
               </button>
               <button
-                onClick={() => finishSession({ sessionId })}
+                onClick={handleEndGameEarly}
                 className="header-btn danger"
-                title="End game early"
+                title="End game early and show final leaderboard"
               >
-                End
+                End Game Early
               </button>
             </>
           )}
@@ -811,6 +841,9 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
             }
             enabledQuestionCount={enabledQuestions.length}
             currentQuestionIndex={session.currentQuestionIndex}
+            onBeforeStart={shuffleOnStart ? async () => {
+              await shuffleQuestionsMutation({ sessionId });
+            } : undefined}
           />
 
           {/* Pre-game Status - right under action button */}
@@ -975,6 +1008,16 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
           )}
           {session.status === "lobby" && (
             <AddQuestionForm sessionId={sessionId} />
+          )}
+          {session.status === "lobby" && questions && questions.length > 1 && (
+            <label className="shuffle-checkbox">
+              <input
+                type="checkbox"
+                checked={shuffleOnStart}
+                onChange={(e) => setShuffleOnStart(e.target.checked)}
+              />
+              <span>Randomize question order when game starts</span>
+            </label>
           )}
           {questions && questions.length > 0 ? (
             <ul className="question-list compact">
