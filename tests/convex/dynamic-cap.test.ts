@@ -90,9 +90,9 @@ describe("dynamic elevation cap (rubber-banding)", () => {
 
     const aliceQ1Elevation = alice!.elevation;
 
-    // Dynamic cap boosted to 758m because (1000-0)/(2*0.66) = 758 > 175
+    // Dynamic cap boosted to 909m because (1000-0)/(2*0.55) = 909 > 175
     const question1 = await t.run(async (ctx) => await ctx.db.get(q1));
-    expect(question1!.dynamicMaxElevation).toBe(758);
+    expect(question1!.dynamicMaxElevation).toBe(909);
 
     // Q2: Only Alice answers correctly (and fast)
     await t.mutation(api.sessions.nextQuestion, { sessionId });
@@ -337,8 +337,8 @@ describe("dynamic elevation cap (rubber-banding)", () => {
       expect(cap).toBeGreaterThanOrEqual(175); // New floor
     }
 
-    // First cap: leader at 0, 4 questions remaining -> (1000-0)/(4*0.66) = 379m (boost)
-    expect(dynamicCaps[0]).toBe(379);
+    // First cap: leader at 0, 4 questions remaining -> (1000-0)/(4*0.55) = 455m (boost)
+    expect(dynamicCaps[0]).toBe(455);
   });
 
   test("all non-summited players get same cap based on leader", async () => {

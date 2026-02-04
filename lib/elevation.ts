@@ -7,7 +7,8 @@
  * 2. Minority bonus for choosing less popular answers
  *
  * Scoring is scaled based on total questions to ensure summit (~1000m)
- * is reached after approximately 66% of questions with perfect answers.
+ * is reached after approximately 55% of questions with perfect answers.
+ * Combined with rubber-banding, this ensures realistic players summit.
  */
 
 // Elevation constants
@@ -18,13 +19,15 @@ const DEFAULT_MAX_BASE_SCORE = 125;
 const DEFAULT_MAX_MINORITY_BONUS = 50;
 
 // Target percentage of questions to reach summit with perfect answers
-const TARGET_SUMMIT_PERCENTAGE = 0.66;
+// 55% chosen to ensure realistic players (75% correct, 3s response) summit
+// with rubber-banding assistance even in pessimistic scenarios
+const TARGET_SUMMIT_PERCENTAGE = 0.55;
 
 /**
  * Calculate the maximum elevation gain per question based on total questions.
- * This ensures players reach summit after ~66% of questions with perfect answers.
+ * This ensures players reach summit after ~55% of questions with perfect answers.
  *
- * Formula: maxPerQuestion = SUMMIT / (totalQuestions * 0.66)
+ * Formula: maxPerQuestion = SUMMIT / (totalQuestions * 0.55)
  *
  * Examples:
  * - 10 questions: 1000 / 6.6 = 152m per question
@@ -123,7 +126,7 @@ export function calculateMinorityBonus(
 /**
  * Calculate total elevation gain combining base score and minority bonus.
  * Scoring is scaled based on total questions to ensure summit is reached
- * after approximately 66% of questions with perfect answers.
+ * after approximately 55% of questions with perfect answers.
  *
  * @param answerTimeMs - Time to answer in milliseconds
  * @param playersOnMyLadder - Number of players who chose the same answer
@@ -207,7 +210,7 @@ export function calculateDynamicMax(
   }
 
   // Calculate boost cap to help trailing players catch up
-  // Use same percentage as scoring - catch up in 66% of remaining questions
+  // Use same percentage as scoring - catch up in 55% of remaining questions
   const boostCap = distanceToSummit / (questionsRemaining * TARGET_SUMMIT_PERCENTAGE);
 
   // Only boost, never reduce - 175m is the floor
