@@ -81,7 +81,7 @@ const CHECKPOINT_NAMES: Record<number, string> = {
 
 // Player size configurations for different modes
 const PLAYER_SIZE_CONFIG: Record<MountainMode, { size: number; spacing: number; showName: boolean; nameSize: number }> = {
-  spectator: { size: 24, spacing: 26, showName: true, nameSize: 8 },
+  spectator: { size: 32, spacing: 34, showName: true, nameSize: 10 },
   player: { size: 40, spacing: 44, showName: true, nameSize: 10 },
   "admin-preview": { size: 12, spacing: 14, showName: false, nameSize: 6 },
 };
