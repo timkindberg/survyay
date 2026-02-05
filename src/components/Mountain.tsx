@@ -1057,9 +1057,13 @@ const RopeClimbersGroup = memo(function RopeClimbersGroup({
     return "climbing";
   };
 
-  // Base climb height - how far up the rope players climb when they grab it
-  // This gives the visual effect of "climbing up" the rope after answering
-  const BASE_CLIMB_HEIGHT = 60; // pixels to climb up from their starting elevation
+  // IMPORTANT: Blobs should NEVER appear above their final elevation!
+  // Before reveal: blob is at elevationAtAnswer (where they grabbed the rope)
+  // After reveal (correct): blob climbs UP by their actual elevationGain
+  // After reveal (wrong): blob stays at elevationAtAnswer
+  //
+  // We use a small visual offset just for player stacking (when multiple players on same rope)
+  // but NO large "climb up" animation that would make them appear higher than they'll end up.
 
   return (
     <>
@@ -1067,27 +1071,25 @@ const RopeClimbersGroup = memo(function RopeClimbersGroup({
         // Calculate Y position based on elevation when they answered
         const baseY = elevationToYCapped(player.elevationAtAnswer);
 
-        // Offset players vertically if multiple on same rope
-        // Earlier answerers (lower index) should be HIGHER on the rope
-        // Since players array is sorted by answeredAt ascending, index 0 answered first
-        // Higher position on rope = more negative Y offset (since Y increases downward)
+        // Small stacking offset for multiple players on same rope (just for visual separation)
+        // Earlier answerers (lower index) get positioned slightly higher
+        // Keep this small (8px per player) so it doesn't misrepresent elevation
         const totalPlayers = players.length;
-        const stackOffset = -((totalPlayers - 1 - playerIndex) * 15); // Earlier answerers get more negative offset (higher)
+        const stackOffset = -((totalPlayers - 1 - playerIndex) * 8);
 
-        // Total climb offset = base climb height + stacking offset
-        // This makes blobs climb UP the rope when they answer, not just bob in place
-        const climbOffset = -BASE_CLIMB_HEIGHT + stackOffset;
+        // The climb offset is ONLY the small stacking offset
+        // No large arbitrary climb - we don't want blobs appearing above their actual elevation
+        const climbOffset = stackOffset;
 
         // Slight horizontal offset for visual separation
         const xOffset = (playerIndex % 2 === 0 ? -1 : 1) * (playerIndex > 0 ? 8 : 0);
 
-        // Calculate fall distance (from current climb position back to their original elevation)
-        // The climb offset is negative (e.g., -60px), so we need to negate it to fall back down
-        // No extra distance needed - just return to the starting elevation
-        const fallDistance = -climbOffset;
+        // Fall distance: for wrong answers, they just stay at their position (no fall needed)
+        // since we're not artificially elevating them anymore
+        const fallDistance = 0;
 
-        // Calculate climb distance for correct answers based on actual elevation gain
-        // This makes the visual climb proportional to the scoring math
+        // Climb distance for correct answers: this is the ACTUAL elevation gain!
+        // This is the only upward movement - it represents real scoring
         let climbDistance = 0;
         if (isCorrect === true) {
           if (player.elevationGain !== undefined && player.elevationGain > 0) {
@@ -1096,13 +1098,14 @@ const RopeClimbersGroup = memo(function RopeClimbersGroup({
             const startY = elevationToYCapped(player.elevationAtAnswer);
             const endY = elevationToYCapped(player.elevationAtAnswer + player.elevationGain);
             climbDistance = startY - endY; // Positive = climbing up
-            // Add small offset per player for visual stacking
-            climbDistance += playerIndex * 3;
+            // Add small offset per player for visual stacking at final position
+            climbDistance += playerIndex * 5;
             // Ensure minimum visible climb for feedback
-            climbDistance = Math.max(climbDistance, 15);
+            climbDistance = Math.max(climbDistance, 10);
           } else {
             // Fallback if elevationGain not yet populated (shouldn't happen during celebrate)
-            climbDistance = 30 + playerIndex * 3;
+            // Use a small default based on typical scoring
+            climbDistance = 20 + playerIndex * 5;
           }
         }
 
