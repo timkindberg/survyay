@@ -125,7 +125,7 @@ http.route({
         sessionId: session._id,
       });
       for (const q of existingQuestions) {
-        await ctx.runMutation(api.questions.remove, { questionId: q._id });
+        await ctx.runMutation(api.questions.remove, { questionId: q._id, hostId });
       }
 
       // Insert new questions
@@ -133,6 +133,7 @@ http.route({
       for (const q of questions) {
         const questionId = await ctx.runMutation(api.questions.create, {
           sessionId: session._id,
+          hostId,
           text: q.text,
           options: q.options.map((text) => ({ text })),
           correctOptionIndex: q.correctIndex,

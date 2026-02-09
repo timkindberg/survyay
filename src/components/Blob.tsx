@@ -1,4 +1,5 @@
 import type { BlobConfig, BlobShape, EyeStyle, HairStyle, Accessory } from "../lib/blobGenerator";
+import "./Blob.css";
 
 interface BlobProps {
   config: BlobConfig;

@@ -157,6 +157,7 @@ describe("players.join", () => {
     // Add a question so we can start the session
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "host-1",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -164,8 +165,8 @@ describe("players.join", () => {
     });
 
     // Start and finish the session
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.finish, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "host-1" });
+    await t.mutation(api.sessions.finish, { sessionId, hostId: "host-1" });
 
     // Try to join - should fail
     await expect(
@@ -232,7 +233,7 @@ describe("players.kick", () => {
     expect(playerBefore).not.toBeNull();
 
     // Kick the player
-    await t.mutation(api.players.kick, { playerId });
+    await t.mutation(api.players.kick, { playerId, hostId: "host-1" });
 
     // Player should no longer exist
     const playerAfter = await t.query(api.players.get, { playerId });
@@ -251,6 +252,7 @@ describe("players.kick", () => {
     // Create a question and answer it
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "host-1",
       text: "Test question?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -258,9 +260,9 @@ describe("players.kick", () => {
     });
 
     // Start session and show answers
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "host-1" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "host-1" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "host-1" });
 
     // Submit answer
     await t.mutation(api.answers.submit, {
@@ -274,7 +276,7 @@ describe("players.kick", () => {
     expect(answersBefore.length).toBe(1);
 
     // Kick the player
-    await t.mutation(api.players.kick, { playerId });
+    await t.mutation(api.players.kick, { playerId, hostId: "host-1" });
 
     // Player's answers should be deleted
     const answersAfter = await t.query(api.answers.getByQuestion, { questionId });
@@ -292,11 +294,11 @@ describe("players.kick", () => {
     });
 
     // Kick the player first
-    await t.mutation(api.players.kick, { playerId });
+    await t.mutation(api.players.kick, { playerId, hostId: "host-1" });
 
     // Try to kick again - should fail
     await expect(
-      t.mutation(api.players.kick, { playerId })
+      t.mutation(api.players.kick, { playerId, hostId: "host-1" })
     ).rejects.toThrowError("Player not found");
   });
 
@@ -324,7 +326,7 @@ describe("players.kick", () => {
     expect(leaderboardBefore.length).toBe(2);
 
     // Kick player1
-    await t.mutation(api.players.kick, { playerId: player1Id });
+    await t.mutation(api.players.kick, { playerId: player1Id, hostId: "host-1" });
 
     // Leaderboard should only have player2
     const leaderboardAfter = await t.query(api.players.getLeaderboard, { sessionId });

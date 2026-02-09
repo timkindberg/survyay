@@ -28,6 +28,7 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
@@ -36,6 +37,7 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
       Array.from({ length: 4 }, (_, i) =>
         t.mutation(api.questions.create, {
           sessionId,
+          hostId: "test-host",
           text: `Q${i + 1}`,
           options: [{ text: "A" }, { text: "B" }],
           correctOptionIndex: 0,
@@ -49,21 +51,21 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
       name: "Player1",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     // Answer 3 of 4 correctly (75% = default threshold)
     // With 4 questions and 75% threshold: base = 1000 / (4 * 0.75) = 333m
     // 3 correct * 333m = ~1000m = summit
 
     for (let i = 0; i < 3; i++) {
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
       await t.mutation(api.answers.submit, {
         questionId: questionIds[i]!,
         playerId,
         optionIndex: 0, // Correct
       });
-      await t.mutation(api.sessions.revealAnswer, { sessionId });
+      await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
     }
 
     const player = await t.run(async (ctx) => await ctx.db.get(playerId));
@@ -86,11 +88,13 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
     const q1 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q1",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -107,16 +111,16 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
       await ctx.db.patch(playerId, { elevation: 900 });
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
     await t.mutation(api.answers.submit, {
       questionId: q1,
       playerId,
       optionIndex: 0,
     });
 
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     const player = await t.run(async (ctx) => await ctx.db.get(playerId));
     expect(player!.elevation).toBeGreaterThanOrEqual(1000);
@@ -139,6 +143,7 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
@@ -147,6 +152,7 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
       Array.from({ length: 10 }, (_, i) =>
         t.mutation(api.questions.create, {
           sessionId,
+          hostId: "test-host",
           text: `Q${i + 1}`,
           options: [{ text: "A" }, { text: "B" }],
           correctOptionIndex: 0,
@@ -160,17 +166,17 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
       name: "Player1",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     // Answer first question correctly
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
     await t.mutation(api.answers.submit, {
       questionId: questionIds[0]!,
       playerId,
       optionIndex: 0,
     });
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     const player = await t.run(async (ctx) => await ctx.db.get(playerId));
 
@@ -196,11 +202,13 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
     const q1 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q1",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -223,9 +231,9 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
       await ctx.db.patch(p4, { elevation: 0 });
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // All answer correctly in order
     await t.mutation(api.answers.submit, { questionId: q1, playerId: p1, optionIndex: 0 });
@@ -233,7 +241,7 @@ describe("simplified scoring system (replaces dynamic caps)", () => {
     await t.mutation(api.answers.submit, { questionId: q1, playerId: p3, optionIndex: 0 });
     await t.mutation(api.answers.submit, { questionId: q1, playerId: p4, optionIndex: 0 });
 
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     const player1 = await t.run(async (ctx) => await ctx.db.get(p1));
     const player2 = await t.run(async (ctx) => await ctx.db.get(p2));
@@ -268,6 +276,7 @@ describe("summit threshold configuration", () => {
     // Update threshold to 60%
     await t.mutation(api.sessions.updateSummitThreshold, {
       sessionId,
+      hostId: "test-host",
       summitThreshold: 0.60,
     });
 
@@ -286,6 +295,7 @@ describe("summit threshold configuration", () => {
     await expect(
       t.mutation(api.sessions.updateSummitThreshold, {
         sessionId,
+        hostId: "test-host",
         summitThreshold: 0.40,
       })
     ).rejects.toThrow("Summit threshold must be between 0.5 and 1.0");
@@ -294,6 +304,7 @@ describe("summit threshold configuration", () => {
     await expect(
       t.mutation(api.sessions.updateSummitThreshold, {
         sessionId,
+        hostId: "test-host",
         summitThreshold: 1.5,
       })
     ).rejects.toThrow("Summit threshold must be between 0.5 and 1.0");
@@ -306,11 +317,12 @@ describe("summit threshold configuration", () => {
       hostId: "test-host",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     await expect(
       t.mutation(api.sessions.updateSummitThreshold, {
         sessionId,
+        hostId: "test-host",
         summitThreshold: 0.60,
       })
     ).rejects.toThrow("Can only change summit threshold in lobby");

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id, Doc } from "../../convex/_generated/dataModel";
-import { Mountain } from "../components/Mountain";
+import "./HostView.css";
+import { Mountain } from "../components/mountain";
 import { Timer } from "../components/Timer";
 import { MuteToggle } from "../components/MuteToggle";
 import type { RopeClimbingState } from "../../lib/ropeTypes";
@@ -78,7 +79,7 @@ export function HostView({ onBack }: Props) {
       variant: "danger",
       onConfirm: async () => {
         try {
-          await deleteSession({ sessionId: id });
+          await deleteSession({ sessionId: id, hostId });
           if (sessionId === id) {
             setSessionId(null);
           }
@@ -98,7 +99,7 @@ export function HostView({ onBack }: Props) {
       cancelText: "Cancel",
       variant: "danger",
       onConfirm: async () => {
-        await backToLobby({ sessionId });
+        await backToLobby({ sessionId, hostId });
       },
     });
   }
@@ -224,7 +225,7 @@ export function HostView({ onBack }: Props) {
       <section>
         <h3>Questions ({questions?.length ?? 0})</h3>
         {session.status === "lobby" && (
-          <AddQuestionForm sessionId={sessionId} />
+          <AddQuestionForm sessionId={sessionId} hostId={hostId} />
         )}
         <ul className="question-list">
           {questions?.map((q, i) => {
@@ -243,6 +244,7 @@ export function HostView({ onBack }: Props) {
                 key={q._id}
                 question={q}
                 index={i}
+                hostId={hostId}
                 isCurrent={currentQuestion?._id === q._id}
                 canEdit={session.status === "lobby"}
                 isFirst={i === 0}
@@ -258,6 +260,7 @@ export function HostView({ onBack }: Props) {
       {session.status === "lobby" && (
         <SummitThresholdControl
           sessionId={sessionId}
+          hostId={hostId}
           currentThreshold={session.summitThreshold ?? 0.75}
         />
       )}
@@ -265,7 +268,7 @@ export function HostView({ onBack }: Props) {
       <section className="controls">
         {session.status === "lobby" && (
           <button
-            onClick={() => startSession({ sessionId })}
+            onClick={() => startSession({ sessionId, hostId })}
             disabled={!questions?.filter(q => q.enabled !== false).length}
             className="primary"
           >
@@ -274,13 +277,13 @@ export function HostView({ onBack }: Props) {
         )}
         {session.status === "active" && (
           <>
-            <button onClick={() => nextQuestion({ sessionId })} className="primary">
+            <button onClick={() => nextQuestion({ sessionId, hostId })} className="primary">
               Next Question
             </button>
             <button onClick={handleBackToLobby}>
               Back to Editing
             </button>
-            <button onClick={() => finishSession({ sessionId })}>
+            <button onClick={() => finishSession({ sessionId, hostId })}>
               End Game
             </button>
           </>
@@ -337,6 +340,7 @@ function SessionListItem({
 function QuestionItem({
   question,
   index,
+  hostId,
   isCurrent,
   canEdit,
   isFirst,
@@ -345,6 +349,7 @@ function QuestionItem({
 }: {
   question: Doc<"questions">;
   index: number;
+  hostId: string;
   isCurrent: boolean;
   canEdit: boolean;
   isFirst: boolean;
@@ -372,6 +377,7 @@ function QuestionItem({
   async function handleSave() {
     await updateQuestion({
       questionId: question._id,
+      hostId,
       text: text.trim(),
       options: options.filter(o => o.trim()).map(o => ({ text: o.trim() })),
       correctOptionIndex: correctIndex,
@@ -387,22 +393,22 @@ function QuestionItem({
       cancelText: "Cancel",
       variant: "danger",
       onConfirm: async () => {
-        await deleteQuestion({ questionId: question._id });
+        await deleteQuestion({ questionId: question._id, hostId });
       },
     });
   }
 
   async function handleMoveUp() {
-    await reorderQuestion({ questionId: question._id, direction: "up" });
+    await reorderQuestion({ questionId: question._id, hostId, direction: "up" });
   }
 
   async function handleMoveDown() {
-    await reorderQuestion({ questionId: question._id, direction: "down" });
+    await reorderQuestion({ questionId: question._id, hostId, direction: "down" });
   }
 
   async function handleToggleEnabled() {
     const currentEnabled = question.enabled !== false;
-    await setEnabled({ questionId: question._id, enabled: !currentEnabled });
+    await setEnabled({ questionId: question._id, hostId, enabled: !currentEnabled });
   }
 
   const isEnabled = question.enabled !== false;
@@ -522,7 +528,7 @@ function QuestionItem({
   );
 }
 
-function AddQuestionForm({ sessionId }: { sessionId: Id<"sessions"> }) {
+function AddQuestionForm({ sessionId, hostId }: { sessionId: Id<"sessions">; hostId: string }) {
   const [text, setText] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [correctIndex, setCorrectIndex] = useState<number | undefined>();
@@ -535,6 +541,7 @@ function AddQuestionForm({ sessionId }: { sessionId: Id<"sessions"> }) {
 
     await createQuestion({
       sessionId,
+      hostId,
       text: text.trim(),
       options: options.filter((o) => o.trim()).map((o) => ({ text: o.trim() })),
       correctOptionIndex: correctIndex,
@@ -596,16 +603,18 @@ const THRESHOLD_OPTIONS = [
 
 function SummitThresholdControl({
   sessionId,
+  hostId,
   currentThreshold,
 }: {
   sessionId: Id<"sessions">;
+  hostId: string;
   currentThreshold: number;
 }) {
   const updateThreshold = useMutation(api.sessions.updateSummitThreshold);
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newThreshold = parseFloat(e.target.value);
-    await updateThreshold({ sessionId, summitThreshold: newThreshold });
+    await updateThreshold({ sessionId, hostId, summitThreshold: newThreshold });
   }
 
   return (

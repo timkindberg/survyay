@@ -1,0 +1,145 @@
+/* ============================================
+   ERROR MESSAGE COMPONENT
+   ============================================ */
+
+.error {
+  color: #ef4444;
+  font-size: 0.9rem;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  animation: error-slide-in 0.2s ease-out;
+}
+
+.error-message--exiting {
+  animation: error-slide-out 0.2s ease-in forwards;
+}
+
+@keyframes error-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes error-slide-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* Inline variant - fits within form flow */
+.error-message--inline {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  margin: 8px 0;
+}
+
+/* Toast variant - floating notification style */
+.error-message--toast {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: 90%;
+  width: max-content;
+}
+
+.error-message--toast.error-message--exiting {
+  animation: error-toast-out 0.2s ease-in forwards;
+}
+
+@keyframes error-toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+/* Banner variant - full width at top of container */
+.error-message--banner {
+  background: #fef2f2;
+  border-bottom: 2px solid #fecaca;
+  color: #dc2626;
+  border-radius: 0;
+  margin: 0 -20px 16px -20px;
+  padding: 12px 20px;
+}
+
+.error-message__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: currentColor;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.error-message--inline .error-message__icon {
+  background: #dc2626;
+}
+
+.error-message--toast .error-message__icon {
+  background: white;
+  color: #dc2626;
+}
+
+.error-message--banner .error-message__icon {
+  background: #dc2626;
+}
+
+.error-message__text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.error-message__dismiss {
+  background: transparent;
+  border: none;
+  color: currentColor;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.error-message__dismiss:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.error-message--toast .error-message__dismiss:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

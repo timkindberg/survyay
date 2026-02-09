@@ -1,0 +1,323 @@
+/* ============================================
+   LEADERBOARD COMPONENT
+   ============================================ */
+
+.leaderboard {
+  width: 100%;
+  max-width: 500px;
+}
+
+.leaderboard-empty {
+  text-align: center;
+  padding: 24px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(4px);
+}
+
+/* Top 3 special styling */
+.leaderboard-row.rank-1 {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 215, 0, 0.1));
+  border-color: rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+}
+
+.leaderboard-row.rank-2 {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.25), rgba(192, 192, 192, 0.1));
+  border-color: rgba(192, 192, 192, 0.4);
+  box-shadow: 0 0 15px rgba(192, 192, 192, 0.1);
+}
+
+.leaderboard-row.rank-3 {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.25), rgba(205, 127, 50, 0.1));
+  border-color: rgba(205, 127, 50, 0.4);
+  box-shadow: 0 0 15px rgba(205, 127, 50, 0.1);
+}
+
+/* Current player highlight */
+.leaderboard-row.current-player {
+  border-width: 2px;
+  border-color: #6366f1;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.08));
+}
+
+/* Summit styling */
+.leaderboard-row.at-summit {
+  animation: summit-glow 2s ease-in-out infinite;
+}
+
+@keyframes summit-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.2);
+  }
+}
+
+.leaderboard-rank {
+  font-size: 1.25rem;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.leaderboard-row.rank-1 .leaderboard-rank {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.leaderboard-row.rank-2 .leaderboard-rank {
+  color: #c0c0c0;
+  text-shadow: 0 0 8px rgba(192, 192, 192, 0.4);
+}
+
+.leaderboard-row.rank-3 .leaderboard-rank {
+  color: #cd7f32;
+  text-shadow: 0 0 8px rgba(205, 127, 50, 0.4);
+}
+
+.leaderboard-avatar {
+  flex-shrink: 0;
+}
+
+.leaderboard-name {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard-row.current-player .leaderboard-name {
+  color: #c7d2fe;
+}
+
+.leaderboard-elevation {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summit-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Bonus elevation display for players who exceeded summit */
+.bonus-elevation {
+  color: #fbbf24;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Separator for current player below top N */
+.leaderboard-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  color: #64748b;
+  font-size: 1.25rem;
+  letter-spacing: 0.3em;
+}
+
+.leaderboard-current-player {
+  padding-top: 4px;
+}
+
+/* Compact mode */
+.leaderboard-compact .leaderboard-row {
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+
+.leaderboard-compact .leaderboard-rank {
+  font-size: 1rem;
+  min-width: 24px;
+}
+
+.leaderboard-compact .leaderboard-name {
+  font-size: 0.875rem;
+}
+
+.leaderboard-compact .leaderboard-elevation {
+  font-size: 0.875rem;
+}
+
+.leaderboard-compact .summit-badge {
+  font-size: 0.65rem;
+  padding: 1px 6px;
+}
+
+/* Light theme version (for admin/player views on white bg) */
+.leaderboard-light .leaderboard-row {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.leaderboard-light .leaderboard-row:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.leaderboard-light .leaderboard-row.rank-1 {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.leaderboard-light .leaderboard-row.rank-2 {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(192, 192, 192, 0.08));
+  border-color: rgba(192, 192, 192, 0.4);
+}
+
+.leaderboard-light .leaderboard-row.rank-3 {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05));
+  border-color: rgba(205, 127, 50, 0.4);
+}
+
+.leaderboard-light .leaderboard-rank {
+  color: #64748b;
+}
+
+.leaderboard-light .leaderboard-row.rank-1 .leaderboard-rank {
+  color: #b8860b;
+}
+
+.leaderboard-light .leaderboard-row.rank-2 .leaderboard-rank {
+  color: #757575;
+}
+
+.leaderboard-light .leaderboard-row.rank-3 .leaderboard-rank {
+  color: #a0522d;
+}
+
+.leaderboard-light .leaderboard-name {
+  color: #1e293b;
+}
+
+.leaderboard-light .leaderboard-row.current-player .leaderboard-name {
+  color: #4f46e5;
+}
+
+/* Leaderboard overlay for results phase */
+.leaderboard-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 20px;
+  padding: 32px;
+  z-index: 60;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+  animation: leaderboard-slide-in 0.4s ease-out;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+@keyframes leaderboard-slide-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.leaderboard-overlay-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.leaderboard-overlay-header h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: white;
+  font-weight: 700;
+}
+
+.leaderboard-overlay-header p {
+  margin: 8px 0 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* Player view results leaderboard */
+.results-leaderboard {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.results-leaderboard h3 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.results-leaderboard .leaderboard {
+  max-width: 100%;
+}
+
+/* Rank info message - shown when player is outside displayed leaderboard range */
+.rank-info {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+.rank-info.compact {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  margin: 0 0 8px 0;
+}

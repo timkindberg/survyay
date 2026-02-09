@@ -36,13 +36,14 @@ describe("50-Player Concurrent Load Test", () => {
       sessionId,
     });
     for (const q of existingQuestions) {
-      await t.mutation(api.questions.remove, { questionId: q._id });
+      await t.mutation(api.questions.remove, { questionId: q._id, hostId: "load-test-host" });
     }
 
     // Add test questions with known correct answers
     for (let i = 0; i < questionCount; i++) {
       await t.mutation(api.questions.create, {
         sessionId,
+        hostId: "load-test-host",
         text: `Load Test Question ${i + 1}: What is the best answer?`,
         options: [
           { text: "Option A" },
@@ -131,7 +132,7 @@ describe("50-Player Concurrent Load Test", () => {
 
     // Start the game
     console.log("\n🚀 Starting game...");
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "load-test-host" });
 
     let session = await t.query(api.sessions.get, { sessionId });
     expect(session?.status).toBe("active");
@@ -150,12 +151,12 @@ describe("50-Player Concurrent Load Test", () => {
       console.log(`\n📋 Question ${qIndex + 1}/${QUESTION_COUNT}: "${question.text}"`);
 
       // Move to next question
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "load-test-host" });
       session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("question_shown");
 
       // Show answers
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "load-test-host" });
       session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("answers_shown");
 
@@ -218,12 +219,12 @@ describe("50-Player Concurrent Load Test", () => {
 
       // Reveal answer
       console.log("🎯 Revealing answer...");
-      await t.mutation(api.sessions.revealAnswer, { sessionId });
+      await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "load-test-host" });
       session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("revealed");
 
       // Show results
-      await t.mutation(api.sessions.showResults, { sessionId });
+      await t.mutation(api.sessions.showResults, { sessionId, hostId: "load-test-host" });
       session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("results");
 
@@ -397,9 +398,9 @@ describe("50-Player Concurrent Load Test", () => {
     const sessionId = await createTestSession(t, 1);
     const playerIds = await joinPlayers(t, sessionId, 50);
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "load-test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "load-test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "load-test-host" });
 
     const questions = await t.query(api.questions.listBySession, { sessionId });
     const question = questions[0]!;
@@ -445,9 +446,9 @@ describe("50-Player Concurrent Load Test", () => {
     const playerIds = await joinPlayers(t, sessionId, 1);
     const playerId = playerIds[0]!;
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "load-test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "load-test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "load-test-host" });
 
     const questions = await t.query(api.questions.listBySession, { sessionId });
     const question = questions[0]!;

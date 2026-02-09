@@ -30,6 +30,7 @@ describe("sessions.listByHost", () => {
     // Add a question to s1 so we can start and finish it
     await t.mutation(api.questions.create, {
       sessionId: s1,
+      hostId: "host-1",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -37,8 +38,8 @@ describe("sessions.listByHost", () => {
     });
 
     // Start and finish the first session
-    await t.mutation(api.sessions.start, { sessionId: s1 });
-    await t.mutation(api.sessions.finish, { sessionId: s1 });
+    await t.mutation(api.sessions.start, { sessionId: s1, hostId: "host-1" });
+    await t.mutation(api.sessions.finish, { sessionId: s1, hostId: "host-1" });
 
     const sessions = await t.query(api.sessions.listByHost, { hostId: "host-1" });
 
@@ -81,6 +82,7 @@ describe("sessions.remove", () => {
     // Add a question
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "host-1",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -94,9 +96,9 @@ describe("sessions.remove", () => {
     });
 
     // Start session -> pre_game, then nextQuestion -> question_shown, then showAnswers -> answers_shown
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId }); // Move from pre_game to first question
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "host-1" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "host-1" }); // Move from pre_game to first question
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "host-1" });
     await t.mutation(api.answers.submit, {
       questionId,
       playerId,
@@ -104,7 +106,7 @@ describe("sessions.remove", () => {
     });
 
     // Delete the session
-    await t.mutation(api.sessions.remove, { sessionId });
+    await t.mutation(api.sessions.remove, { sessionId, hostId: "host-1" });
 
     // Verify everything is deleted
     const session = await t.query(api.sessions.get, { sessionId });
@@ -121,11 +123,11 @@ describe("sessions.remove", () => {
 
     // Create a session to get a valid ID format, then delete it
     const { sessionId } = await t.mutation(api.sessions.create, { hostId: "host-1" });
-    await t.mutation(api.sessions.remove, { sessionId });
+    await t.mutation(api.sessions.remove, { sessionId, hostId: "host-1" });
 
     // Try to delete again
     await expect(
-      t.mutation(api.sessions.remove, { sessionId })
+      t.mutation(api.sessions.remove, { sessionId, hostId: "host-1" })
     ).rejects.toThrowError("Session not found");
   });
 });
@@ -139,6 +141,7 @@ describe("sessions.backToLobby", () => {
     // Add questions
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "host-1",
       text: "Q1",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -146,7 +149,7 @@ describe("sessions.backToLobby", () => {
     });
 
     // Start the session (goes to pre_game phase)
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "host-1" });
 
     // Verify it's active in pre_game phase
     let session = await t.query(api.sessions.get, { sessionId });
@@ -155,14 +158,14 @@ describe("sessions.backToLobby", () => {
     expect(session?.questionPhase).toBe("pre_game");
 
     // Go to first question
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "host-1" });
 
     // Verify it's on question 0
     session = await t.query(api.sessions.get, { sessionId });
     expect(session?.currentQuestionIndex).toBe(0);
 
     // Go back to lobby
-    await t.mutation(api.sessions.backToLobby, { sessionId });
+    await t.mutation(api.sessions.backToLobby, { sessionId, hostId: "host-1" });
 
     // Verify it's back to lobby
     session = await t.query(api.sessions.get, { sessionId });
@@ -184,9 +187,9 @@ describe("sessions.backToLobby", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId }); // Move to first question
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "host-1" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "host-1" }); // Move to first question
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "host-1" });
 
     // Submit correct answer to gain elevation
     await t.mutation(api.answers.submit, {
@@ -196,14 +199,14 @@ describe("sessions.backToLobby", () => {
     });
 
     // Reveal to calculate scores and update player elevation
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "host-1" });
 
     // Verify player has elevation
     let players = await t.query(api.players.listBySession, { sessionId });
     expect(players[0].elevation).toBeGreaterThan(0);
 
     // Go back to lobby
-    await t.mutation(api.sessions.backToLobby, { sessionId });
+    await t.mutation(api.sessions.backToLobby, { sessionId, hostId: "host-1" });
 
     // Verify elevation is reset
     players = await t.query(api.players.listBySession, { sessionId });
@@ -217,6 +220,7 @@ describe("sessions.backToLobby", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "host-1",
       text: "Q1",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -228,9 +232,9 @@ describe("sessions.backToLobby", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId }); // Move to first question
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "host-1" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "host-1" }); // Move to first question
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "host-1" });
 
     await t.mutation(api.answers.submit, {
       questionId,
@@ -243,7 +247,7 @@ describe("sessions.backToLobby", () => {
     expect(hasAnswered).toBe(true);
 
     // Go back to lobby
-    await t.mutation(api.sessions.backToLobby, { sessionId });
+    await t.mutation(api.sessions.backToLobby, { sessionId, hostId: "host-1" });
 
     // Verify answer is deleted
     hasAnswered = await t.query(api.answers.hasAnswered, { questionId, playerId });
@@ -257,7 +261,7 @@ describe("sessions.backToLobby", () => {
 
     // Try to go back to lobby when already in lobby
     await expect(
-      t.mutation(api.sessions.backToLobby, { sessionId })
+      t.mutation(api.sessions.backToLobby, { sessionId, hostId: "host-1" })
     ).rejects.toThrowError("Can only go back to lobby from active or finished state");
   });
 
@@ -277,9 +281,9 @@ describe("sessions.backToLobby", () => {
     const firstQuestion = questions[0]!;
 
     // Start the session and advance through it
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "host-1" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "host-1" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "host-1" });
 
     // Submit correct answer and reveal to give player elevation
     await t.mutation(api.answers.submit, {
@@ -287,21 +291,21 @@ describe("sessions.backToLobby", () => {
       playerId,
       optionIndex: firstQuestion.correctOptionIndex!,
     });
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "host-1" });
 
     // Verify player has elevation before finishing
     let players = await t.query(api.players.listBySession, { sessionId });
     expect(players[0].elevation).toBeGreaterThan(0);
 
     // Finish the session
-    await t.mutation(api.sessions.finish, { sessionId });
+    await t.mutation(api.sessions.finish, { sessionId, hostId: "host-1" });
 
     // Verify it's finished
     let session = await t.query(api.sessions.get, { sessionId });
     expect(session?.status).toBe("finished");
 
     // Now restart the game with same players
-    await t.mutation(api.sessions.backToLobby, { sessionId });
+    await t.mutation(api.sessions.backToLobby, { sessionId, hostId: "host-1" });
 
     // Verify it's back to lobby
     session = await t.query(api.sessions.get, { sessionId });

@@ -8,7 +8,7 @@ I've created a comprehensive E2E performance test for the spectator view with 50
 
 1. **`tests/e2e/spectator-performance.test.ts`** - Main test suite (8 comprehensive tests)
 2. **`tests/e2e/PERFORMANCE_TEST_README.md`** - Detailed documentation
-3. **`run-performance-test.sh`** - Helper script to run the test with prerequisites check
+3. **`docs/event-validation/run-performance-test.sh`** - Helper script to run the test with prerequisites check
 
 ## How to Run
 
@@ -22,7 +22,7 @@ bun run dev
 bun run convex:dev
 
 # Terminal 3: Run the test
-./run-performance-test.sh
+./docs/event-validation/run-performance-test.sh
 ```
 
 ### Method 2: Direct Playwright Command

@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from "react";
+import "./ConfirmationModal.css";
 
 export interface ConfirmationModalProps {
   isOpen: boolean;

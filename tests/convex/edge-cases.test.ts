@@ -38,8 +38,8 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
       }
 
       // Start the game
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
 
       // Verify game is active
       const sessionBefore = await t.query(api.sessions.get, { sessionId });
@@ -71,8 +71,8 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
     });
 
     test("Players CANNOT join when game is finished", async () => {
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.finish, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.finish, { sessionId, hostId: "test-host" });
 
       await expect(
         t.mutation(api.players.join, {
@@ -91,9 +91,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         });
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       // Late joiner arrives
       const latePlayerId = await t.mutation(api.players.join, {
@@ -186,7 +186,7 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "ReconnectMidGame",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
       await t.mutation(api.players.disconnect, { playerId });
 
       // Rejoin after game started
@@ -205,7 +205,7 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
       });
 
       await t.mutation(api.players.disconnect, { playerId });
-      await t.mutation(api.sessions.finish, { sessionId });
+      await t.mutation(api.sessions.finish, { sessionId, hostId: "test-host" });
 
       await expect(
         t.mutation(api.players.join, {
@@ -228,9 +228,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         playerIds.push(playerId);
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
@@ -268,9 +268,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "DuplicateAnswerer",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
@@ -301,9 +301,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         playerIds.push(playerId);
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
@@ -341,9 +341,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         playerIds.push(playerId);
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
@@ -364,7 +364,7 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
       await Promise.all(submissions);
 
       // Reveal answer to calculate scores
-      await t.mutation(api.sessions.revealAnswer, { sessionId });
+      await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
       // Verify all players got elevation
       const players = await t.query(api.players.getLeaderboard, { sessionId });
@@ -384,9 +384,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "BackwardNav",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
       await t.mutation(api.answers.submit, {
@@ -395,10 +395,10 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         optionIndex: 0,
       });
 
-      await t.mutation(api.sessions.revealAnswer, { sessionId });
+      await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
       // Navigate backward
-      await t.mutation(api.sessions.previousPhase, { sessionId });
+      await t.mutation(api.sessions.previousPhase, { sessionId, hostId: "test-host" });
 
       const session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("answers_shown");
@@ -417,9 +417,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "DestructiveNav",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
       await t.mutation(api.answers.submit, {
@@ -429,7 +429,7 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
       });
 
       // Navigate backward (should delete answers)
-      const result = await t.mutation(api.sessions.previousPhase, { sessionId });
+      const result = await t.mutation(api.sessions.previousPhase, { sessionId, hostId: "test-host" });
       expect(result.isDestructive).toBe(true);
 
       // Verify answers were deleted
@@ -453,9 +453,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         playerIds.push(playerId);
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       // Get the actual correct answer index
       const questions = await t.query(api.questions.listBySession, { sessionId });
@@ -472,14 +472,14 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         });
       }
 
-      await t.mutation(api.sessions.revealAnswer, { sessionId });
+      await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
       // Verify players have elevation
       const playersBefore = await t.query(api.players.listBySession, { sessionId });
       expect(playersBefore.some((p) => p.elevation > 0)).toBe(true);
 
       // Reset to lobby
-      await t.mutation(api.sessions.backToLobby, { sessionId });
+      await t.mutation(api.sessions.backToLobby, { sessionId, hostId: "test-host" });
 
       // Verify all elevation reset to 0
       const playersAfter = await t.query(api.players.listBySession, { sessionId });
@@ -501,18 +501,18 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "StateCheck",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
 
       let session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("question_shown");
 
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
       session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("answers_shown");
 
       // Navigate backward
-      await t.mutation(api.sessions.previousPhase, { sessionId });
+      await t.mutation(api.sessions.previousPhase, { sessionId, hostId: "test-host" });
       session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("question_shown");
     });
@@ -523,19 +523,19 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "ConsistencyCheck",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId }); // Q1
-      await t.mutation(api.sessions.showAnswers, { sessionId });
-      await t.mutation(api.sessions.revealAnswer, { sessionId });
-      await t.mutation(api.sessions.showResults, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" }); // Q1
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showResults, { sessionId, hostId: "test-host" });
 
       // Step backward
-      await t.mutation(api.sessions.previousPhase, { sessionId });
+      await t.mutation(api.sessions.previousPhase, { sessionId, hostId: "test-host" });
       let session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("revealed");
 
       // Step forward again
-      await t.mutation(api.sessions.showResults, { sessionId });
+      await t.mutation(api.sessions.showResults, { sessionId, hostId: "test-host" });
       session = await t.query(api.sessions.get, { sessionId });
       expect(session?.questionPhase).toBe("results");
     });
@@ -576,9 +576,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "RefreshMidGame",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
       await t.mutation(api.answers.submit, {
@@ -609,7 +609,7 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "RefreshFinished",
       });
 
-      await t.mutation(api.sessions.finish, { sessionId });
+      await t.mutation(api.sessions.finish, { sessionId, hostId: "test-host" });
 
       const storedSession = await t.query(api.players.checkStoredSession, {
         playerId,
@@ -674,8 +674,8 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "EarlyAnswerer",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
       // Don't call showAnswers - still in question_shown phase
 
       const questionId = questionIds[0]!;
@@ -699,9 +699,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "SlowPlayer",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
@@ -727,37 +727,33 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
       expect(timing?.timeLimit).toBe(question!.timeLimit);
     });
 
-    test("Invalid option index is recorded but doesn't crash", async () => {
+    test("Invalid option index is rejected with bounds error", async () => {
       const playerId = await t.mutation(api.players.join, {
         sessionId,
         name: "InvalidOptionPlayer",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
-      // Submit answer with out-of-bounds option index
-      // This should be validated, but let's see what happens
-      await t.mutation(api.answers.submit, {
-        questionId,
-        playerId,
-        optionIndex: 999, // Way out of bounds
-      });
+      // Submit answer with out-of-bounds option index - should be rejected
+      await expect(
+        t.mutation(api.answers.submit, {
+          questionId,
+          playerId,
+          optionIndex: 999, // Way out of bounds
+        })
+      ).rejects.toThrow("Invalid option index");
 
-      // Answer is recorded
+      // Answer should NOT be recorded
       const hasAnswered = await t.query(api.answers.hasAnswered, {
         questionId,
         playerId,
       });
-      expect(hasAnswered).toBe(true);
-
-      // Results query handles it gracefully
-      const results = await t.query(api.answers.getResults, { questionId });
-      expect(results?.totalAnswers).toBe(1);
-      // Option 999 doesn't exist, so it's not counted in valid options
+      expect(hasAnswered).toBe(false);
     });
   });
 
@@ -787,9 +783,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         playerIds.push(playerId);
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
@@ -848,9 +844,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         playerIds.push(playerId);
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
@@ -887,9 +883,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         playerIds.push(playerId);
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
 
@@ -904,7 +900,7 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
 
       // Kick first 5 players concurrently
       const kicks = playerIds.slice(0, 5).map((playerId) =>
-        t.mutation(api.players.kick, { playerId })
+        t.mutation(api.players.kick, { playerId, hostId: "test-host" })
       );
 
       await Promise.all(kicks);
@@ -928,9 +924,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         playerIds.push(playerId);
       }
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       // Players submit answers
       const questionId = questionIds[0]!;
@@ -943,7 +939,7 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
       }
 
       // Delete entire session
-      await t.mutation(api.sessions.remove, { sessionId });
+      await t.mutation(api.sessions.remove, { sessionId, hostId: "test-host" });
 
       // Verify session is gone
       const session = await t.query(api.sessions.get, { sessionId });
@@ -963,9 +959,9 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
         name: "DoubleRevealCheck",
       });
 
-      await t.mutation(api.sessions.start, { sessionId });
-      await t.mutation(api.sessions.nextQuestion, { sessionId });
-      await t.mutation(api.sessions.showAnswers, { sessionId });
+      await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+      await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
       const questionId = questionIds[0]!;
       await t.mutation(api.answers.submit, {
@@ -975,14 +971,14 @@ describe("Edge Cases for Live Events with 50+ Players", () => {
       });
 
       // First reveal
-      await t.mutation(api.sessions.revealAnswer, { sessionId });
+      await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
       const playerAfterReveal1 = await t.query(api.players.get, { playerId });
       const elevationAfterReveal1 = playerAfterReveal1?.elevation ?? 0;
 
       // Try to reveal again (should fail because phase is already revealed)
       await expect(
-        t.mutation(api.sessions.revealAnswer, { sessionId })
+        t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" })
       ).rejects.toThrow("Can only reveal from answers_shown phase");
 
       // Verify elevation didn't change

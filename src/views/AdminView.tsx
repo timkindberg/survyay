@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id, Doc } from "../../convex/_generated/dataModel";
+import "./AdminView.css";
 import { Timer } from "../components/Timer";
 import type { RopeClimbingState } from "../../lib/ropeTypes";
 import { ErrorMessage } from "../components/ErrorMessage";
@@ -33,6 +34,7 @@ interface HostActionConfig {
 // Hook to determine the current host action based on session state
 function useHostAction(
   sessionId: Id<"sessions"> | null,
+  hostId: string,
   sessionStatus: SessionStatus | undefined,
   questionPhase: QuestionPhase,
   enabledQuestionCount: number,
@@ -58,7 +60,7 @@ function useHostAction(
           if (onBeforeStart) {
             await onBeforeStart();
           }
-          await startSession({ sessionId });
+          await startSession({ sessionId, hostId });
         },
         disabled: enabledQuestionCount === 0,
       };
@@ -68,31 +70,31 @@ function useHostAction(
         case "pre_game":
           return {
             label: "First Question",
-            action: async () => { await nextQuestion({ sessionId }); },
+            action: async () => { await nextQuestion({ sessionId, hostId }); },
             disabled: false,
           };
         case "question_shown":
           return {
             label: "Show Answers",
-            action: async () => { await showAnswers({ sessionId }); },
+            action: async () => { await showAnswers({ sessionId, hostId }); },
             disabled: false,
           };
         case "answers_shown":
           return {
             label: "Reveal Answer",
-            action: async () => { await revealAnswer({ sessionId }); },
+            action: async () => { await revealAnswer({ sessionId, hostId }); },
             disabled: false,
           };
         case "revealed":
           return {
             label: "Show Leaderboard",
-            action: async () => { await showResults({ sessionId }); },
+            action: async () => { await showResults({ sessionId, hostId }); },
             disabled: false,
           };
         case "results":
           return {
             label: isLastQuestion ? "End Game" : "Next Question",
-            action: async () => { await nextQuestion({ sessionId }); },
+            action: async () => { await nextQuestion({ sessionId, hostId }); },
             disabled: false,
             isDestructive: isLastQuestion,
           };
@@ -104,7 +106,7 @@ function useHostAction(
       return {
         label: "New Game (Same Players)",
         action: async () => {
-          await backToLobby({ sessionId });
+          await backToLobby({ sessionId, hostId });
         },
         disabled: false,
         confirmMessage: "This will reset all player scores and start a new game with the same players. Continue?",
@@ -118,6 +120,7 @@ function useHostAction(
 // Hook to determine the back action based on session state
 function useBackAction(
   sessionId: Id<"sessions"> | null,
+  hostId: string,
   sessionStatus: SessionStatus | undefined,
   questionPhase: QuestionPhase,
   currentQuestionIndex: number
@@ -135,21 +138,21 @@ function useBackAction(
       // Pre-game -> Lobby
       return {
         label: "<- Lobby",
-        action: async () => { await previousPhase({ sessionId }); },
+        action: async () => { await previousPhase({ sessionId, hostId }); },
         disabled: false,
         isDestructive: false, // No answers or progress to lose yet
       };
     case "results":
       return {
         label: "<- Revealed",
-        action: async () => { await previousPhase({ sessionId }); },
+        action: async () => { await previousPhase({ sessionId, hostId }); },
         disabled: false,
         isDestructive: false,
       };
     case "revealed":
       return {
         label: "<- Hide Answer",
-        action: async () => { await previousPhase({ sessionId }); },
+        action: async () => { await previousPhase({ sessionId, hostId }); },
         disabled: false,
         isDestructive: false,
       };
@@ -157,7 +160,7 @@ function useBackAction(
       return {
         label: "<- Clear Answers",
         action: async () => {
-          await previousPhase({ sessionId });
+          await previousPhase({ sessionId, hostId });
         },
         disabled: false,
         isDestructive: true,
@@ -167,7 +170,7 @@ function useBackAction(
       if (currentQuestionIndex > 0) {
         return {
           label: `<- Q${currentQuestionIndex} Results`,
-          action: async () => { await previousPhase({ sessionId }); },
+          action: async () => { await previousPhase({ sessionId, hostId }); },
           disabled: false,
           isDestructive: false,
         };
@@ -175,7 +178,7 @@ function useBackAction(
         // Q1 -> Pre-game (safe: no progress lost, just going back to hype phase)
         return {
           label: "<- Pre-Game",
-          action: async () => { await previousPhase({ sessionId }); },
+          action: async () => { await previousPhase({ sessionId, hostId }); },
           disabled: false,
           isDestructive: false,
         };
@@ -188,6 +191,7 @@ function useBackAction(
 // Host Action Button Component
 function HostActionButton({
   sessionId,
+  hostId,
   sessionStatus,
   questionPhase,
   enabledQuestionCount,
@@ -195,6 +199,7 @@ function HostActionButton({
   onBeforeStart,
 }: {
   sessionId: Id<"sessions">;
+  hostId: string;
   sessionStatus: SessionStatus;
   questionPhase: QuestionPhase;
   enabledQuestionCount: number;
@@ -208,6 +213,7 @@ function HostActionButton({
 
   const actionConfig = useHostAction(
     sessionId,
+    hostId,
     sessionStatus,
     questionPhase,
     enabledQuestionCount,
@@ -217,6 +223,7 @@ function HostActionButton({
 
   const backConfig = useBackAction(
     sessionId,
+    hostId,
     sessionStatus,
     questionPhase,
     currentQuestionIndex
@@ -496,7 +503,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
       variant: "danger",
       onConfirm: async () => {
         try {
-          await deleteSession({ sessionId: id });
+          await deleteSession({ sessionId: id, hostId });
           if (sessionId === id) {
             setSessionId(null);
           }
@@ -518,7 +525,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
       variant: "danger",
       onConfirm: async () => {
         try {
-          await backToLobby({ sessionId });
+          await backToLobby({ sessionId, hostId });
           setAdminError(null);
         } catch (err) {
           setAdminError(getFriendlyErrorMessage(err));
@@ -537,7 +544,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
       variant: "danger",
       onConfirm: async () => {
         try {
-          await endGameEarly({ sessionId });
+          await endGameEarly({ sessionId, hostId });
           setAdminError(null);
         } catch (err) {
           setAdminError(getFriendlyErrorMessage(err));
@@ -623,6 +630,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
       // Import questions
       await importQuestionsMutation({
         sessionId,
+        hostId,
         questions: data.questions,
       });
 
@@ -649,6 +657,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
     try {
       await regenerateQuestions({
         sessionId,
+        hostId,
         categories: selectedCategories.length > 0 ? selectedCategories : undefined,
         questionCount,
       });
@@ -847,6 +856,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
         <section className="admin-section host-action-section">
           <HostActionButton
             sessionId={sessionId}
+            hostId={hostId}
             sessionStatus={session.status as SessionStatus}
             questionPhase={
               // Derive pre_game phase when session is active but hasn't started questions yet
@@ -857,7 +867,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
             enabledQuestionCount={enabledQuestions.length}
             currentQuestionIndex={session.currentQuestionIndex}
             onBeforeStart={shuffleOnStart ? async () => {
-              await shuffleQuestionsMutation({ sessionId });
+              await shuffleQuestionsMutation({ sessionId, hostId });
             } : undefined}
           />
 
@@ -1022,7 +1032,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
             </div>
           )}
           {session.status === "lobby" && (
-            <AddQuestionForm sessionId={sessionId} />
+            <AddQuestionForm sessionId={sessionId} hostId={hostId} />
           )}
           {session.status === "lobby" && questions && questions.length > 1 && (
             <label className="shuffle-checkbox">
@@ -1034,7 +1044,16 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
               <span>Randomize question order when game starts</span>
             </label>
           )}
-          {questions && questions.length > 0 ? (
+          {questions === undefined ? (
+            <div style={{ padding: "4px 0" }}>
+              {Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className="skeleton-question-row">
+                  <div className="skeleton-question-number" />
+                  <div className="skeleton-question-text" style={{ width: `${60 + (i * 17) % 30}%` }} />
+                </div>
+              ))}
+            </div>
+          ) : questions.length > 0 ? (
             <ul className="question-list compact">
               {questions.map((q, i) => {
                 const isEnabled = q.enabled !== false;
@@ -1048,6 +1067,7 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
                     key={q._id}
                     question={q}
                     index={i}
+                    hostId={hostId}
                     isCurrent={currentQuestion?._id === q._id}
                     canEdit={session.status === "lobby"}
                     isFirst={i === 0}
@@ -1071,13 +1091,23 @@ export function AdminView({ onBack, initialCode, initialToken }: Props) {
                 : `Players (${activePlayers.length} active${inactivePlayers.length > 0 ? `, ${inactivePlayers.length} inactive` : ""})`}
             </h2>
           </div>
-          {sortedPlayers.length > 0 ? (
+          {players === undefined ? (
+            <div className="skeleton-player-grid">
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="skeleton-player-card">
+                  <div className="skeleton-player-avatar" />
+                  <div className="skeleton-player-name" style={{ width: `${50 + (i * 13) % 40}%` }} />
+                </div>
+              ))}
+            </div>
+          ) : sortedPlayers.length > 0 ? (
             <div className="player-grid">
               {sortedPlayers.map((p, i) => (
                 <PlayerCard
                   key={p._id}
                   player={p}
                   rank={i + 1}
+                  hostId={hostId}
                   isActive={isPlayerActive(p)}
                   showKickButton={session.status === "lobby" || !isPlayerActive(p)}
                 />
@@ -1146,6 +1176,7 @@ function SessionListItem({
 function QuestionItem({
   question,
   index,
+  hostId,
   isCurrent,
   canEdit,
   isFirst,
@@ -1154,6 +1185,7 @@ function QuestionItem({
 }: {
   question: Doc<"questions">;
   index: number;
+  hostId: string;
   isCurrent: boolean;
   canEdit: boolean;
   isFirst: boolean;
@@ -1183,6 +1215,7 @@ function QuestionItem({
   async function handleSave() {
     await updateQuestion({
       questionId: question._id,
+      hostId,
       text: text.trim(),
       options: options.filter(o => o.trim()).map(o => ({ text: o.trim() })),
       correctOptionIndex: correctIndex,
@@ -1199,22 +1232,22 @@ function QuestionItem({
       cancelText: "Cancel",
       variant: "danger",
       onConfirm: async () => {
-        await deleteQuestion({ questionId: question._id });
+        await deleteQuestion({ questionId: question._id, hostId });
       },
     });
   }
 
   async function handleMoveUp() {
-    await reorderQuestion({ questionId: question._id, direction: "up" });
+    await reorderQuestion({ questionId: question._id, hostId, direction: "up" });
   }
 
   async function handleMoveDown() {
-    await reorderQuestion({ questionId: question._id, direction: "down" });
+    await reorderQuestion({ questionId: question._id, hostId, direction: "down" });
   }
 
   async function handleToggleEnabled() {
     const currentEnabled = question.enabled !== false;
-    await setEnabled({ questionId: question._id, enabled: !currentEnabled });
+    await setEnabled({ questionId: question._id, hostId, enabled: !currentEnabled });
   }
 
   const isEnabled = question.enabled !== false;
@@ -1341,7 +1374,7 @@ function QuestionItem({
   );
 }
 
-function AddQuestionForm({ sessionId }: { sessionId: Id<"sessions"> }) {
+function AddQuestionForm({ sessionId, hostId }: { sessionId: Id<"sessions">; hostId: string }) {
   const [text, setText] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [correctIndex, setCorrectIndex] = useState<number | undefined>();
@@ -1355,6 +1388,7 @@ function AddQuestionForm({ sessionId }: { sessionId: Id<"sessions"> }) {
 
     await createQuestion({
       sessionId,
+      hostId,
       text: text.trim(),
       options: options.filter((o) => o.trim()).map((o) => ({ text: o.trim() })),
       correctOptionIndex: correctIndex,
@@ -1416,11 +1450,13 @@ function AddQuestionForm({ sessionId }: { sessionId: Id<"sessions"> }) {
 function PlayerCard({
   player,
   rank,
+  hostId,
   isActive,
   showKickButton,
 }: {
   player: Doc<"players">;
   rank: number;
+  hostId: string;
   isActive: boolean;
   showKickButton: boolean;
 }) {
@@ -1446,7 +1482,7 @@ function PlayerCard({
         setKickError(null);
         try {
           console.log("Kicking player:", player._id, player.name);
-          await kickPlayer({ playerId: player._id });
+          await kickPlayer({ playerId: player._id, hostId });
           console.log("Kick mutation completed successfully for:", player._id);
         } catch (err) {
           console.error("Failed to kick player:", player._id, err);

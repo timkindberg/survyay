@@ -1,0 +1,712 @@
+/* ============================================
+   SPECTATOR VIEW STYLES
+   Full-screen, dramatic presentation for events
+   ============================================ */
+
+.spectator-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* Loading state */
+.spectator-loading {
+  text-align: center;
+}
+
+.spectator-loading-content h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  animation: spectator-pulse 1.5s ease-in-out infinite;
+}
+
+.spectator-loading-content p {
+  color: #94a3b8;
+  font-size: 1.2rem;
+}
+
+/* Error state */
+.spectator-error {
+  text-align: center;
+}
+
+.spectator-error h1 {
+  color: #f87171;
+  margin-bottom: 1rem;
+}
+
+.spectator-error p {
+  color: #94a3b8;
+  margin-bottom: 2rem;
+}
+
+/* Lobby state - waiting for game to start */
+.spectator-lobby {
+  text-align: center;
+}
+
+.spectator-title {
+  font-size: 4rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+}
+
+.spectator-join-prompt {
+  margin-bottom: 2rem;
+}
+
+.spectator-join-prompt .join-label {
+  font-size: 1.5rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+}
+
+.spectator-join-prompt .join-code {
+  font-size: 6rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  font-family: monospace;
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.spectator-player-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.spectator-player-count .count {
+  font-size: 5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.spectator-player-count .label {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.spectator-lobby .waiting-text {
+  font-size: 1.2rem;
+  color: #64748b;
+  font-style: italic;
+  animation: spectator-pulse 2s ease-in-out infinite;
+}
+
+/* Active game state - full screen mountain */
+.spectator-active {
+  padding: 0;
+  justify-content: flex-start;
+}
+
+/* Full-screen spectator mode */
+.spectator-fullscreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.spectator-controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+}
+
+.view-toggle {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.view-toggle.active {
+  background: rgba(99, 102, 241, 0.4);
+  border-color: #6366f1;
+  color: white;
+}
+
+.spectator-session-badge {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: monospace;
+  letter-spacing: 0.1em;
+  z-index: 100;
+}
+
+/* Sound mute/unmute toggle button */
+.spectator-sound-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: white;
+  cursor: pointer;
+  z-index: 200;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spectator-sound-toggle:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: scale(1.05);
+}
+
+.spectator-sound-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Timer overlay in top-right corner */
+.spectator-timer-overlay {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+/* Question overlay - HTML layer for guaranteed visibility above mountain */
+.spectator-question-overlay {
+  position: absolute;
+  top: 20px;
+  left: 180px;
+  right: 180px;
+  z-index: 150;
+  text-align: center;
+  pointer-events: none;
+  padding: 20px 32px;
+  background: rgba(0, 20, 50, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.spectator-question-number {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 12px;
+}
+
+.spectator-question-text {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 700;
+  color: white;
+  line-height: 1.3;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.spectator-question-hint {
+  margin-top: 16px;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  animation: spectator-pulse 1.5s ease-in-out infinite;
+}
+
+/* Full-screen mountain container - no padding, edge to edge */
+.spectator-mountain-fullscreen {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.spectator-mountain-fullscreen .mountain {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+
+/* Option chips in sky */
+.spectator-view .option-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.spectator-view .option-chip .option-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #c7d2fe;
+}
+
+.spectator-view .option-chip .option-text {
+  font-size: 1.1rem;
+  color: #e2e8f0;
+}
+
+.spectator-player-indicator {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  z-index: 100;
+}
+
+/* Pre-game state - Get Ready! */
+.spectator-pregame .pregame-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  text-align: center;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.pregame-title {
+  font-size: 6rem;
+  font-weight: 800;
+  color: white;
+  text-shadow:
+    0 0 40px rgba(99, 102, 241, 0.8),
+    0 0 80px rgba(99, 102, 241, 0.4),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  margin: 0;
+  animation: pregame-pulse 1.5s ease-in-out infinite;
+}
+
+.pregame-subtitle {
+  font-size: 2rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  margin-top: 1rem;
+  font-style: italic;
+  animation: pregame-fade 2s ease-in-out infinite;
+}
+
+@keyframes pregame-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes pregame-fade {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Spectator pre-game mountain blobs - excited state */
+.spectator-pregame .mountain-player {
+  animation: blob-excited-bounce 0.8s ease-in-out infinite;
+}
+
+.spectator-pregame .mountain-player:nth-child(even) {
+  animation-name: blob-excited-wiggle;
+  animation-duration: 1s;
+}
+
+.spectator-pregame .mountain-player:nth-child(3n) {
+  animation-name: blob-excited-dance;
+  animation-duration: 0.9s;
+}
+
+.spectator-pregame .mountain-player:nth-child(4n+1) {
+  animation-delay: 0.15s;
+}
+
+.spectator-pregame .mountain-player:nth-child(5n+2) {
+  animation-delay: 0.25s;
+}
+
+/* Finished state - leaderboard */
+.spectator-finished {
+  text-align: center;
+}
+
+.spectator-finished .spectator-title {
+  font-size: 5rem;
+  margin-bottom: 3rem;
+}
+
+.spectator-leaderboard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 32px 48px;
+  max-width: 600px;
+  width: 100%;
+}
+
+.spectator-leaderboard h2 {
+  font-size: 1.5rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+}
+
+.spectator-view .leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.spectator-view .leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.spectator-view .leaderboard-item.rank-1 {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.05));
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.spectator-view .leaderboard-item.rank-2 {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(192, 192, 192, 0.05));
+  border: 1px solid rgba(192, 192, 192, 0.3);
+}
+
+.spectator-view .leaderboard-item.rank-3 {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(205, 127, 50, 0.05));
+  border: 1px solid rgba(205, 127, 50, 0.3);
+}
+
+.spectator-view .leaderboard-item .rank {
+  font-size: 1.5rem;
+  font-weight: 700;
+  width: 40px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.spectator-view .leaderboard-item.rank-1 .rank { color: #ffd700; }
+.spectator-view .leaderboard-item.rank-2 .rank { color: #c0c0c0; }
+.spectator-view .leaderboard-item.rank-3 .rank { color: #cd7f32; }
+
+.spectator-view .leaderboard-item .name {
+  flex: 1;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.spectator-view .leaderboard-item .elevation {
+  font-size: 1.1rem;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.spectator-session-code {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: monospace;
+}
+
+.spectator-finished .back-to-home-button {
+  margin-top: 2rem;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.spectator-finished .back-to-home-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Spectator join screen */
+.spectator-join {
+  text-align: center;
+}
+
+.spectator-join .back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.spectator-join h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.spectator-join p {
+  color: #94a3b8;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.spectator-join form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.spectator-join .code-input {
+  font-size: 2rem;
+  text-align: center;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.spectator-join .code-input:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+
+.spectator-join .code-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.spectator-join button[type="submit"] {
+  background: #6366f1;
+  font-size: 1.1rem;
+  padding: 14px 28px;
+}
+
+.spectator-join button[type="submit"]:disabled {
+  background: #374151;
+  color: #6b7280;
+}
+
+/* Pulse animation for loading/waiting states */
+@keyframes spectator-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ============================================
+   SPECTATOR LOBBY - Animated Blob Avatars
+   ============================================ */
+
+.spectator-lobby-blobs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.lobby-blob {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease-out;
+}
+
+.lobby-blob-name {
+  margin-top: 4px;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Pop-in animation for new players */
+.lobby-blob {
+  animation: lobby-blob-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes lobby-blob-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-15deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Stagger the appearance based on position index */
+.lobby-blob-pos-0 { animation-delay: 0s; }
+.lobby-blob-pos-1 { animation-delay: 0.05s; }
+.lobby-blob-pos-2 { animation-delay: 0.1s; }
+.lobby-blob-pos-3 { animation-delay: 0.15s; }
+.lobby-blob-pos-4 { animation-delay: 0.2s; }
+.lobby-blob-pos-5 { animation-delay: 0.25s; }
+.lobby-blob-pos-6 { animation-delay: 0.3s; }
+.lobby-blob-pos-7 { animation-delay: 0.35s; }
+.lobby-blob-pos-8 { animation-delay: 0.4s; }
+.lobby-blob-pos-9 { animation-delay: 0.45s; }
+.lobby-blob-pos-10 { animation-delay: 0.5s; }
+.lobby-blob-pos-11 { animation-delay: 0.55s; }
+.lobby-blob-pos-12 { animation-delay: 0.6s; }
+.lobby-blob-pos-13 { animation-delay: 0.65s; }
+.lobby-blob-pos-14 { animation-delay: 0.7s; }
+.lobby-blob-pos-15 { animation-delay: 0.75s; }
+
+/* Once a blob has appeared, don't replay the appear animation */
+.lobby-blob.blob-appeared {
+  animation: none;
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+/* Ensure content is above blobs */
+.spectator-lobby .spectator-title,
+.spectator-lobby .spectator-join-prompt,
+.spectator-lobby .spectator-player-count,
+.spectator-lobby .waiting-text {
+  position: relative;
+  z-index: 10;
+}
+
+/* Subtle glow effect on blobs */
+.lobby-blob .blob {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Speaking animation - triggered when a blob "talks" */
+@keyframes blob-speak {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.15) translateY(-5px);
+  }
+  30% {
+    transform: scale(0.95) translateY(2px);
+  }
+  50% {
+    transform: scale(1.1) translateY(-3px);
+  }
+  70% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.lobby-blob.blob-speaking {
+  animation: blob-speak 0.4s ease-out !important;
+  z-index: 100;
+}
+
+.lobby-blob.blob-speaking .blob {
+  filter: drop-shadow(0 6px 12px rgba(255, 255, 255, 0.4)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+  .lobby-blob {
+    transform: scale(0.8);
+  }
+}
+
+@media (min-width: 1400px) {
+  .lobby-blob {
+    transform: scale(1.2);
+  }
+}

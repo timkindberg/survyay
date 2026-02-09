@@ -1,0 +1,86 @@
+/* ============================================
+   CONFIRMATION MODAL - Reusable confirmation dialog
+   ============================================ */
+
+.confirmation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.15s ease-out;
+}
+
+.confirmation-modal-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  animation: dialog-pop 0.2s ease-out;
+}
+
+.confirmation-modal-title {
+  margin: 0 0 12px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.confirmation-modal-message {
+  margin: 0 0 24px 0;
+  font-size: 1rem;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.confirmation-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirmation-modal-cancel {
+  background: #e5e7eb;
+  color: #374151;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.confirmation-modal-cancel:hover {
+  background: #d1d5db;
+}
+
+.confirmation-modal-confirm {
+  background: #6366f1;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.confirmation-modal-confirm:hover {
+  background: #4f46e5;
+}
+
+.confirmation-modal-confirm.danger {
+  background: #ef4444;
+}
+
+.confirmation-modal-confirm.danger:hover {
+  background: #dc2626;
+}

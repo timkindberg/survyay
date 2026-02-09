@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./AIQuestionModal.css";
 
 interface AIQuestionModalProps {
   isOpen: boolean;

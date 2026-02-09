@@ -13,7 +13,7 @@ async function deleteSampleQuestions(
 ) {
   const questions = await t.query(api.questions.listBySession, { sessionId });
   for (const q of questions) {
-    await t.mutation(api.questions.remove, { questionId: q._id });
+    await t.mutation(api.questions.remove, { questionId: q._id, hostId: "test-host" });
   }
 }
 
@@ -31,6 +31,7 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
     // Create 4 questions - we'll disable #1 and #2 (0-indexed)
     const q0 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question 0 (enabled)",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -39,6 +40,7 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
 
     const q1 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question 1 (will be disabled)",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -47,6 +49,7 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
 
     const q2 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question 2 (will be disabled)",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -55,6 +58,7 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
 
     const q3 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question 3 (enabled)",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -62,25 +66,25 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
     });
 
     // Disable questions 1 and 2
-    await t.mutation(api.questions.setEnabled, { questionId: q1, enabled: false });
-    await t.mutation(api.questions.setEnabled, { questionId: q2, enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q1, hostId: "test-host", enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q2, hostId: "test-host", enabled: false });
 
     // Start the session - goes to pre_game phase (currentQuestionIndex becomes -1)
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     // In pre_game, getCurrentQuestion should return null (no question yet)
     let currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
     expect(currentQ).toBeNull();
 
     // Move to first question - should show q0 (first enabled question)
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
     expect(currentQ).not.toBeNull();
     expect(currentQ!._id).toBe(q0);
     expect(currentQ!.text).toBe("Question 0 (enabled)");
 
     // Move to next question - should skip q1, q2 and go to q3
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
 
     // getCurrentQuestion should now return q3 (second enabled question, index 1 in enabled list)
     currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
@@ -102,6 +106,7 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
     // Create questions where first two are disabled
     const q0 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question 0 (will be disabled)",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -110,6 +115,7 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
 
     const q1 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question 1 (will be disabled)",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -118,6 +124,7 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
 
     const q2 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question 2 (enabled - should be first)",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -125,18 +132,18 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
     });
 
     // Disable first two questions
-    await t.mutation(api.questions.setEnabled, { questionId: q0, enabled: false });
-    await t.mutation(api.questions.setEnabled, { questionId: q1, enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q0, hostId: "test-host", enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q1, hostId: "test-host", enabled: false });
 
     // Start session (goes to pre_game with currentQuestionIndex = -1)
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     // In pre_game, getCurrentQuestion should return null
     let currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
     expect(currentQ).toBeNull();
 
     // Move to first question - should be q2 (first enabled question)
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
     expect(currentQ).not.toBeNull();
     expect(currentQ!._id).toBe(q2);
@@ -155,6 +162,7 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -166,12 +174,12 @@ describe("questions.getCurrentQuestion with disabled questions", () => {
     expect(currentQ).toBeNull();
 
     // Start session (goes to pre_game) - currentQuestionIndex is still -1
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
     currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
     expect(currentQ).toBeNull();
 
     // Move to first question - should now have a current question
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
     expect(currentQ).not.toBeNull();
   });
@@ -191,6 +199,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
     // Create 5 questions
     const q0 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q0 enabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -199,6 +208,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
 
     const q1 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q1 disabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -207,6 +217,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
 
     const q2 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q2 disabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -215,6 +226,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
 
     const q3 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q3 enabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -223,6 +235,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
 
     const q4 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q4 enabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -230,10 +243,10 @@ describe("sessions.nextQuestion with disabled questions", () => {
     });
 
     // Disable q1 and q2
-    await t.mutation(api.questions.setEnabled, { questionId: q1, enabled: false });
-    await t.mutation(api.questions.setEnabled, { questionId: q2, enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q1, hostId: "test-host", enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q2, hostId: "test-host", enabled: false });
 
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     // After start, we're in pre_game phase with currentQuestionIndex = -1
     let session = await t.query(api.sessions.get, { sessionId });
@@ -241,14 +254,14 @@ describe("sessions.nextQuestion with disabled questions", () => {
     expect(session!.questionPhase).toBe("pre_game");
 
     // Move to first question - should be q0
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     session = await t.query(api.sessions.get, { sessionId });
     expect(session!.currentQuestionIndex).toBe(0);
     let currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
     expect(currentQ!._id).toBe(q0);
 
     // Next question - should go to q3 (index 1 in enabled list)
-    let result = await t.mutation(api.sessions.nextQuestion, { sessionId });
+    let result = await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     expect(result.finished).toBe(false);
 
     session = await t.query(api.sessions.get, { sessionId });
@@ -257,7 +270,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
     expect(currentQ!._id).toBe(q3);
 
     // Next question - should go to q4 (index 2 in enabled list)
-    result = await t.mutation(api.sessions.nextQuestion, { sessionId });
+    result = await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     expect(result.finished).toBe(false);
 
     session = await t.query(api.sessions.get, { sessionId });
@@ -266,7 +279,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
     expect(currentQ!._id).toBe(q4);
 
     // Next question - should finish (no more enabled questions)
-    result = await t.mutation(api.sessions.nextQuestion, { sessionId });
+    result = await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     expect(result.finished).toBe(true);
 
     session = await t.query(api.sessions.get, { sessionId });
@@ -286,6 +299,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
     // Create 2 questions, second one will be disabled
     const q0 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q0 enabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -294,6 +308,7 @@ describe("sessions.nextQuestion with disabled questions", () => {
 
     const q1 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q1 disabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -301,21 +316,21 @@ describe("sessions.nextQuestion with disabled questions", () => {
     });
 
     // Disable q1
-    await t.mutation(api.questions.setEnabled, { questionId: q1, enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q1, hostId: "test-host", enabled: false });
 
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     // After start, we're in pre_game phase
     let session = await t.query(api.sessions.get, { sessionId });
     expect(session!.questionPhase).toBe("pre_game");
 
     // Move to first question - should be q0
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     let currentQ = await t.query(api.questions.getCurrentQuestion, { sessionId });
     expect(currentQ!._id).toBe(q0);
 
     // Next question - should finish since only enabled question is done
-    const result = await t.mutation(api.sessions.nextQuestion, { sessionId });
+    const result = await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     expect(result.finished).toBe(true);
 
     session = await t.query(api.sessions.get, { sessionId });
@@ -335,14 +350,16 @@ describe("sessions.nextQuestion with disabled questions", () => {
     // Create 4 questions, disable every other one
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q0 disabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
       timeLimit: 30,
-    }).then(id => t.mutation(api.questions.setEnabled, { questionId: id, enabled: false }));
+    }).then(id => t.mutation(api.questions.setEnabled, { questionId: id, hostId: "test-host", enabled: false }));
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q1 enabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -351,33 +368,35 @@ describe("sessions.nextQuestion with disabled questions", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q2 disabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
       timeLimit: 30,
-    }).then(id => t.mutation(api.questions.setEnabled, { questionId: id, enabled: false }));
+    }).then(id => t.mutation(api.questions.setEnabled, { questionId: id, hostId: "test-host", enabled: false }));
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q3 enabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
       timeLimit: 30,
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     // After start, we're in pre_game phase with currentQuestionIndex = -1
     let session = await t.query(api.sessions.get, { sessionId });
     expect(session!.currentQuestionIndex).toBe(-1);
 
     // Move to first question
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     session = await t.query(api.sessions.get, { sessionId });
     expect(session!.currentQuestionIndex).toBe(0);
 
     // After next, currentQuestionIndex should be 1 (second enabled question is Q3)
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
     session = await t.query(api.sessions.get, { sessionId });
     expect(session!.currentQuestionIndex).toBe(1);
   });
@@ -397,17 +416,18 @@ describe("sessions.start with disabled questions", () => {
     // Create a question and disable it
     const q = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Disabled question",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
       timeLimit: 30,
     });
 
-    await t.mutation(api.questions.setEnabled, { questionId: q, enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q, hostId: "test-host", enabled: false });
 
     // Starting should fail
     await expect(
-      t.mutation(api.sessions.start, { sessionId })
+      t.mutation(api.sessions.start, { sessionId, hostId: "test-host" })
     ).rejects.toThrowError("Add at least one enabled question before starting");
   });
 
@@ -424,6 +444,7 @@ describe("sessions.start with disabled questions", () => {
     // Create two questions, disable one
     const q0 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Disabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -432,16 +453,17 @@ describe("sessions.start with disabled questions", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Enabled",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
       timeLimit: 30,
     });
 
-    await t.mutation(api.questions.setEnabled, { questionId: q0, enabled: false });
+    await t.mutation(api.questions.setEnabled, { questionId: q0, hostId: "test-host", enabled: false });
 
     // Starting should succeed (goes to pre_game phase)
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     const session = await t.query(api.sessions.get, { sessionId });
     expect(session!.status).toBe("active");
@@ -464,6 +486,7 @@ describe("questions export and import", () => {
     // Create test questions
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "First question?",
       options: [{ text: "Option A" }, { text: "Option B" }, { text: "Option C" }],
       correctOptionIndex: 1,
@@ -472,6 +495,7 @@ describe("questions export and import", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Second question?",
       options: [{ text: "Yes" }, { text: "No" }],
       correctOptionIndex: 0,
@@ -509,6 +533,7 @@ describe("questions export and import", () => {
     // Import questions
     const result = await t.mutation(api.questions.importQuestions, {
       sessionId,
+      hostId: "test-host",
       questions: [
         {
           text: "Imported Q1",
@@ -551,6 +576,7 @@ describe("questions export and import", () => {
     // Create initial questions
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Original Q1",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -559,6 +585,7 @@ describe("questions export and import", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Original Q2",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -572,6 +599,7 @@ describe("questions export and import", () => {
     // Import new questions (should replace)
     await t.mutation(api.questions.importQuestions, {
       sessionId,
+      hostId: "test-host",
       questions: [
         {
           text: "Imported Q1",
@@ -599,6 +627,7 @@ describe("questions export and import", () => {
     await deleteSampleQuestions(t, sessionId);
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Question",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -606,12 +635,13 @@ describe("questions export and import", () => {
     });
 
     // Start the session
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
 
     // Try to import - should fail
     await expect(
       t.mutation(api.questions.importQuestions, {
         sessionId,
+        hostId: "test-host",
         questions: [
           {
             text: "New Q",
@@ -634,6 +664,7 @@ describe("questions export and import", () => {
     await expect(
       t.mutation(api.questions.importQuestions, {
         sessionId,
+        hostId: "test-host",
         questions: [],
       })
     ).rejects.toThrowError("Questions array cannot be empty");
@@ -642,6 +673,7 @@ describe("questions export and import", () => {
     await expect(
       t.mutation(api.questions.importQuestions, {
         sessionId,
+        hostId: "test-host",
         questions: [
           {
             text: "Q1",
@@ -656,6 +688,7 @@ describe("questions export and import", () => {
     await expect(
       t.mutation(api.questions.importQuestions, {
         sessionId,
+        hostId: "test-host",
         questions: [
           {
             text: "Q1",
@@ -696,6 +729,7 @@ describe("questions export and import", () => {
     for (const q of originalQuestions) {
       await t.mutation(api.questions.create, {
         sessionId,
+        hostId: "test-host",
         text: q.text,
         options: q.options.map((text) => ({ text })),
         correctOptionIndex: q.correctIndex,
@@ -715,6 +749,7 @@ describe("questions export and import", () => {
     // Import to new session
     await t.mutation(api.questions.importQuestions, {
       sessionId: newSessionId,
+      hostId: "test-host",
       questions: exported.questions,
     });
 

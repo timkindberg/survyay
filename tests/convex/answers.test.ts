@@ -25,12 +25,12 @@ describe("answers.submit", () => {
     });
 
     // Start the session (this sets currentQuestionIndex to -1 and phase to pre_game)
-    await t.mutation(api.sessions.start, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
     // Move to first question (sets currentQuestionIndex to 0 and phase to question_shown)
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
 
     // Show answers (transition to answers_shown phase to accept answers)
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Submit correct answer - first player should get full elevation
     const result = await t.mutation(api.answers.submit, {
@@ -43,7 +43,7 @@ describe("answers.submit", () => {
     expect(result.submitted).toBe(true);
 
     // Trigger reveal to calculate scores
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Check elevation on player record
     // With 10 questions, scaling gives ~95m base + ~38m minority bonus = ~133m max
@@ -76,9 +76,9 @@ describe("answers.submit", () => {
       name: "SlowPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // First player answers
     await t.mutation(api.answers.submit, {
@@ -95,7 +95,7 @@ describe("answers.submit", () => {
     });
 
     // Trigger reveal to calculate scores
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Check elevations on player records
     const p1 = await t.query(api.players.get, { playerId: player1 });
@@ -125,9 +125,9 @@ describe("answers.submit", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Submit wrong answer (pick an answer that's not the correct one)
     const wrongIndex = (firstQuestion.correctOptionIndex! + 1) % firstQuestion.options.length;
@@ -138,7 +138,7 @@ describe("answers.submit", () => {
     });
 
     // Trigger reveal to calculate scores
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Check elevation on player record - should still be 0
     const player = await t.query(api.players.get, { playerId });
@@ -154,6 +154,7 @@ describe("answers.submit", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "What is 2+2?",
       options: [{ text: "3" }, { text: "4" }],
       correctOptionIndex: 1,
@@ -165,9 +166,9 @@ describe("answers.submit", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // First answer
     await t.mutation(api.answers.submit, {
@@ -196,12 +197,13 @@ describe("answers.submit", () => {
     // Remove sample questions
     const existingQuestions = await t.query(api.questions.listBySession, { sessionId });
     for (const q of existingQuestions) {
-      await t.mutation(api.questions.remove, { questionId: q._id });
+      await t.mutation(api.questions.remove, { questionId: q._id, hostId: "test-host" });
     }
 
     // Create poll question (no correctOptionIndex = poll mode)
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Favorite color?",
       options: [{ text: "Red" }, { text: "Blue" }],
       timeLimit: 30,
@@ -212,9 +214,9 @@ describe("answers.submit", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     await t.mutation(api.answers.submit, {
       questionId,
@@ -223,7 +225,7 @@ describe("answers.submit", () => {
     });
 
     // Trigger reveal to calculate scores
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Check elevation on player record - poll mode gives participation points
     const player = await t.query(api.players.get, { playerId });
@@ -250,9 +252,9 @@ describe("answers.submit", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Answer first question correctly
     await t.mutation(api.answers.submit, {
@@ -262,7 +264,7 @@ describe("answers.submit", () => {
     });
 
     // Reveal first question to calculate scores
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Check first elevation
     let player = await t.query(api.players.get, { playerId });
@@ -270,9 +272,9 @@ describe("answers.submit", () => {
     expect(firstElevation).toBeGreaterThan(0);
 
     // Move to results then next question
-    await t.mutation(api.sessions.showResults, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.showResults, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Answer second question correctly
     await t.mutation(api.answers.submit, {
@@ -282,7 +284,7 @@ describe("answers.submit", () => {
     });
 
     // Reveal second question to calculate scores
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Check accumulated elevation
     player = await t.query(api.players.get, { playerId });
@@ -300,6 +302,7 @@ describe("answers.hasAnswered", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       timeLimit: 30,
@@ -327,6 +330,7 @@ describe("answers.hasAnswered", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -338,9 +342,9 @@ describe("answers.hasAnswered", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     await t.mutation(api.answers.submit, {
       questionId,
@@ -367,6 +371,7 @@ describe("answers.getResults", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Favorite?",
       options: [{ text: "A" }, { text: "B" }, { text: "C" }],
       correctOptionIndex: 1,
@@ -378,9 +383,9 @@ describe("answers.getResults", () => {
     const player2 = await t.mutation(api.players.join, { sessionId, name: "P2" });
     const player3 = await t.mutation(api.players.join, { sessionId, name: "P3" });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // P1 and P2 vote for option 0, P3 votes for option 1
     await t.mutation(api.answers.submit, { questionId, playerId: player1, optionIndex: 0 });
@@ -407,6 +412,7 @@ describe("answers.getTimingInfo", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       timeLimit: 20,
@@ -429,6 +435,7 @@ describe("answers.getTimingInfo", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -440,9 +447,9 @@ describe("answers.getTimingInfo", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Submit an answer
     await t.mutation(api.answers.submit, {
@@ -471,6 +478,7 @@ describe("answers.isQuestionOpen", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       timeLimit: 30,
@@ -490,6 +498,7 @@ describe("answers.isQuestionOpen", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -501,9 +510,9 @@ describe("answers.isQuestionOpen", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     await t.mutation(api.answers.submit, {
       questionId,
@@ -528,6 +537,7 @@ describe("answers.getPlayersOnRopes", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Pick a letter",
       options: [{ text: "A" }, { text: "B" }, { text: "C" }, { text: "D" }],
       correctOptionIndex: 1,
@@ -540,9 +550,9 @@ describe("answers.getPlayersOnRopes", () => {
     const player3 = await t.mutation(api.players.join, { sessionId, name: "Charlie" });
     const player4 = await t.mutation(api.players.join, { sessionId, name: "Diana" });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Players answer different options (Alice and Charlie pick A, Bob picks B, Diana doesn't answer)
     await t.mutation(api.answers.submit, { questionId, playerId: player1, optionIndex: 0 });
@@ -589,9 +599,9 @@ describe("answers.getPlayersOnRopes", () => {
 
     const playerId = await t.mutation(api.players.join, { sessionId, name: "TestPlayer" });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Answer first question correctly to gain elevation
     // Sample questions have correctOptionIndex set
@@ -602,7 +612,7 @@ describe("answers.getPlayersOnRopes", () => {
     });
 
     // Reveal to calculate scores and update player elevation
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Verify player now has elevation (scaled based on 10 questions)
     let player = await t.query(api.players.get, { playerId });
@@ -610,9 +620,9 @@ describe("answers.getPlayersOnRopes", () => {
     expect(firstQuestionElevation).toBeGreaterThan(0);
 
     // Move to results then next question (resets phase to question_shown)
-    await t.mutation(api.sessions.showResults, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.showResults, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Answer second question (wrong answer)
     await t.mutation(api.answers.submit, {
@@ -641,6 +651,7 @@ describe("answers.getPlayersOnRopes", () => {
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -651,9 +662,9 @@ describe("answers.getPlayersOnRopes", () => {
     const player2 = await t.mutation(api.players.join, { sessionId, name: "Second" });
     const player3 = await t.mutation(api.players.join, { sessionId, name: "Third" });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // All pick option A, but in order
     await t.mutation(api.answers.submit, { questionId, playerId: player1, optionIndex: 0 });
@@ -677,13 +688,14 @@ describe("answers.getPlayersOnRopes", () => {
     // Create a question just to get a valid-looking ID format
     const realQuestionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Real",
       options: [{ text: "A" }],
       timeLimit: 30,
     });
 
     // Delete it to make it non-existent
-    await t.mutation(api.questions.remove, { questionId: realQuestionId });
+    await t.mutation(api.questions.remove, { questionId: realQuestionId, hostId: "test-host" });
 
     const result = await t.query(api.answers.getPlayersOnRopes, { questionId: realQuestionId });
     expect(result).toBeNull();
@@ -705,9 +717,9 @@ describe("answers.getRopeClimbingState", () => {
     const player1 = await t.mutation(api.players.join, { sessionId, name: "Alice" });
     const player2 = await t.mutation(api.players.join, { sessionId, name: "Bob" });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Alice answers the first question (with correct answer)
     await t.mutation(api.answers.submit, {
@@ -757,6 +769,7 @@ describe("answers.getRopeClimbingState", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -765,9 +778,9 @@ describe("answers.getRopeClimbingState", () => {
 
     const playerId = await t.mutation(api.players.join, { sessionId, name: "TestPlayer" });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Before any answers
     let state = await t.query(api.answers.getRopeClimbingState, { sessionId });
@@ -798,6 +811,7 @@ describe("answers.getRopeClimbingState", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -809,9 +823,9 @@ describe("answers.getRopeClimbingState", () => {
     const player2 = await t.mutation(api.players.join, { sessionId, name: "Bob" });
     const player3 = await t.mutation(api.players.join, { sessionId, name: "Charlie" });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Get the current question ID
     let state = await t.query(api.answers.getRopeClimbingState, { sessionId });
@@ -846,7 +860,7 @@ describe("answers.getRopeClimbingState", () => {
     expect(state!.questionPhase).toBe("answers_shown");
 
     // Host reveals the answer
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     state = await t.query(api.answers.getRopeClimbingState, { sessionId });
     expect(state!.timing.isRevealed).toBe(true);
@@ -862,6 +876,7 @@ describe("answers.getRopeClimbingState", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -880,9 +895,9 @@ describe("answers.getRopeClimbingState", () => {
     await t.mutation(api.players.heartbeat, { playerId: player1 });
     await t.mutation(api.players.heartbeat, { playerId: player2 });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     let state = await t.query(api.answers.getRopeClimbingState, { sessionId });
     const questionId = state!.question.id;
@@ -913,7 +928,7 @@ describe("answers.getRopeClimbingState", () => {
     expect(state!.questionPhase).toBe("answers_shown");
 
     // Host reveals
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     state = await t.query(api.answers.getRopeClimbingState, { sessionId });
     expect(state!.timing.isRevealed).toBe(true);
@@ -929,6 +944,7 @@ describe("answers.getRopeClimbingState", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -938,9 +954,9 @@ describe("answers.getRopeClimbingState", () => {
     // Add a player
     const player1 = await t.mutation(api.players.join, { sessionId, name: "Alice" });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     let state = await t.query(api.answers.getRopeClimbingState, { sessionId });
     const questionId = state!.question.id;
@@ -953,13 +969,13 @@ describe("answers.getRopeClimbingState", () => {
     });
 
     // Reveal
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
     state = await t.query(api.answers.getRopeClimbingState, { sessionId });
     expect(state!.timing.isRevealed).toBe(true);
     expect(state!.questionPhase).toBe("revealed");
 
     // Show results
-    await t.mutation(api.sessions.showResults, { sessionId });
+    await t.mutation(api.sessions.showResults, { sessionId, hostId: "test-host" });
     state = await t.query(api.answers.getRopeClimbingState, { sessionId });
     expect(state!.timing.isRevealed).toBe(true);
     expect(state!.questionPhase).toBe("results");

@@ -227,10 +227,14 @@ export const reactivate = mutation({
 
 // Kick a player from a session - removes them entirely
 export const kick = mutation({
-  args: { playerId: v.id("players") },
+  args: { playerId: v.id("players"), hostId: v.string() },
   handler: async (ctx, args) => {
     const player = await ctx.db.get(args.playerId);
     if (!player) throw new Error("Player not found");
+
+    const session = await ctx.db.get(player.sessionId);
+    if (!session) throw new Error("Session not found");
+    if (args.hostId !== session.hostId) throw new Error("Unauthorized: not the session host");
 
     // Delete all answers by this player
     const answers = await ctx.db

@@ -1,6 +1,7 @@
 import { Blob } from "./Blob";
 import { generateBlob } from "../lib/blobGenerator";
 import { SUMMIT } from "../../lib/elevation";
+import "./Leaderboard.css";
 
 interface LeaderboardPlayer {
   _id: string;

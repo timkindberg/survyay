@@ -1,108 +1,22 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useState, useEffect, useMemo } from "react";
+import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
-import { Mountain } from "../components/Mountain";
+import "./PlayerView.css";
+import { Mountain } from "../components/mountain";
 import { Timer } from "../components/Timer";
 import { Leaderboard } from "../components/Leaderboard";
 import { useSoundManager } from "../hooks/useSoundManager";
-import type { SoundType } from "../lib/soundManager";
 import { usePlayerHeartbeat } from "../hooks/usePlayerHeartbeat";
+import { useSessionPersistence } from "../hooks/useSessionPersistence";
+import { useGameSubscriptions } from "../hooks/useGameSubscriptions";
+import { useGameSounds } from "../hooks/useGameSounds";
+import { useResultReveal } from "../hooks/useResultReveal";
 import { MuteToggle } from "../components/MuteToggle";
-import type { RopeClimbingState, PlayerRopeState } from "../../lib/ropeTypes";
 import { Blob } from "../components/Blob";
 import { generateBlob } from "../lib/blobGenerator";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { ShareResults } from "../components/ShareResults";
 import { getFriendlyErrorMessage } from "../lib/errorMessages";
-import { shuffleOptions, hashString, shuffleWithSeed } from "../../lib/shuffle";
-
-// localStorage helpers for session persistence
-// Using localStorage so players can rejoin after closing the browser/tab
-// Stores multiple sessions keyed by code+name to support multiple tabs with different players
-const STORAGE_KEY = "blobby_player_sessions";
-const OLD_STORAGE_KEY = "blobby_player"; // Legacy single-session key
-
-interface StoredSession {
-  playerId: string;
-  sessionId: string;
-  sessionCode: string;
-  playerName: string;
-}
-
-// Storage format: { "CODE:name": StoredSession, ... }
-type StoredSessions = Record<string, StoredSession>;
-
-function getSessionKey(code: string, name: string): string {
-  // Normalize: uppercase code, exact name (case-sensitive)
-  return `${code.toUpperCase()}:${name}`;
-}
-
-function loadAllSessions(): StoredSessions {
-  try {
-    // First, check for and migrate legacy single-session format
-    const oldStored = localStorage.getItem(OLD_STORAGE_KEY);
-    if (oldStored) {
-      const oldSession = JSON.parse(oldStored) as StoredSession;
-      // Migrate to new format
-      const key = getSessionKey(oldSession.sessionCode, oldSession.playerName);
-      const migrated: StoredSessions = { [key]: oldSession };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-      localStorage.removeItem(OLD_STORAGE_KEY);
-      return migrated;
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return {};
-    return JSON.parse(stored) as StoredSessions;
-  } catch {
-    return {};
-  }
-}
-
-function saveSession(playerId: Id<"players">, sessionId: Id<"sessions">, sessionCode: string, playerName: string) {
-  const sessions = loadAllSessions();
-  const key = getSessionKey(sessionCode, playerName);
-  sessions[key] = { playerId, sessionId, sessionCode, playerName };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-}
-
-function loadSession(code?: string, name?: string): StoredSession | null {
-  const sessions = loadAllSessions();
-
-  // If code and name provided, look up that specific session
-  if (code && name) {
-    const key = getSessionKey(code, name);
-    return sessions[key] ?? null;
-  }
-
-  // Fallback: return the first session found (for backwards compatibility)
-  // This handles the case where URL doesn't have code/name yet
-  const keys = Object.keys(sessions);
-  if (keys.length > 0) {
-    return sessions[keys[0]!] ?? null;
-  }
-
-  return null;
-}
-
-function clearSession(code?: string, name?: string) {
-  if (code && name) {
-    // Clear specific session
-    const sessions = loadAllSessions();
-    const key = getSessionKey(code, name);
-    delete sessions[key];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-  } else {
-    // Clear all sessions (used when no specific session to clear)
-    localStorage.removeItem(STORAGE_KEY);
-  }
-}
-
-function clearCurrentSession(session: StoredSession | null) {
-  if (session) {
-    clearSession(session.sessionCode, session.playerName);
-  }
-}
 
 /**
  * Get a deterministic idle animation class based on player name
@@ -129,248 +43,49 @@ interface Props {
 }
 
 export function PlayerView({ onBack, initialCode, initialName }: Props) {
-  const [joinCode, setJoinCode] = useState(initialCode ?? "");
-  const [playerName, setPlayerName] = useState("");
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const [playerId, setPlayerId] = useState<Id<"players"> | null>(null);
-  const [sessionId, setSessionId] = useState<Id<"sessions"> | null>(null);
-  const [error, setError] = useState("");
-  const [isRestoring, setIsRestoring] = useState(true);
-  const [storedSession, setStoredSession] = useState<StoredSession | null>(null);
-  const [isRejoining, setIsRejoining] = useState(false);
+  // --- Session persistence (join/rejoin/leave, localStorage) ---
+  const persistence = useSessionPersistence({ initialCode, initialName });
+  const {
+    joinCode, setJoinCode, playerName, setPlayerName, nameInputRef,
+    playerId, sessionId, isRestoring, isRejoining, storedSession,
+    checkStoredSession, error, setError, showLeaveConfirm, setShowLeaveConfirm,
+    getByCode, handleJoin, handleRejoin, handleStartFresh, handleLeave,
+    clearSessionForPlayer,
+  } = persistence;
 
-  // Sound effects
-  const { play } = useSoundManager();
-  const prevPlayerCountRef = useRef(0);
-  const prevQuestionPhaseRef = useRef<string | null>(null);
-  const hasPlayedRevealSoundsRef = useRef<string | null>(null);
-
-  // Heartbeat for presence tracking - sends every 5 seconds while tab is open
+  // --- Heartbeat for presence tracking ---
   usePlayerHeartbeat(playerId);
 
-  // Check stored session validity via Convex
-  const checkStoredSession = useQuery(
-    api.players.checkStoredSession,
-    storedSession
-      ? {
-          playerId: storedSession.playerId as Id<"players">,
-          sessionId: storedSession.sessionId as Id<"sessions">,
-        }
-      : "skip"
-  );
+  // --- Game data subscriptions ---
+  const subs = useGameSubscriptions({ sessionId, playerId });
+  const {
+    session, player, currentQuestion, ropeClimbingState, playerRopeState,
+    players, playerContext, leaderboardSummary,
+    hasAnswered, timingInfo, questionPhase, shuffledAnswers,
+  } = subs;
 
-  const reactivatePlayer = useMutation(api.players.reactivate);
+  // --- Result reveal timing (synced with scissors animation) ---
+  const playerResultRevealed = useResultReveal({
+    playerRopeState,
+    currentQuestionId: currentQuestion?._id ?? null,
+  });
 
-  // Try to restore session from localStorage on mount
-  // Uses URL's code and name to look up the correct session for this tab
-  useEffect(() => {
-    const stored = loadSession(initialCode ?? undefined, initialName ?? undefined);
-    if (stored) {
-      // Store locally to trigger the checkStoredSession query
-      setStoredSession(stored);
-    }
-    setIsRestoring(false);
-  }, [initialCode, initialName]);
+  // --- Game sounds ---
+  const isPreGame = session?.status === "active" && session?.questionPhase === "pre_game";
+  useGameSounds({
+    playerCount: players ? players.length : null,
+    currentQuestionPhase: playerRopeState?.phase ?? null,
+    isPreGame,
+    sessionStatus: session?.status ?? null,
+    playerResultRevealed,
+    currentQuestionId: currentQuestion?._id ?? null,
+    didAnswer: playerRopeState?.myAnswer.hasAnswered ?? false,
+    isCorrect: playerRopeState?.myAnswer.isCorrect ?? null,
+  });
 
-  // Handle the result of checking stored session
-  useEffect(() => {
-    if (storedSession && checkStoredSession !== undefined) {
-      if (checkStoredSession === null) {
-        // Stored session is invalid - clear it
-        clearCurrentSession(storedSession);
-        setStoredSession(null);
-      }
-      // If valid, we keep storedSession to show the rejoin UI
-    }
-  }, [storedSession, checkStoredSession]);
-
-  // Ref to track if we've tried auto-rejoining (for bookmarkable URLs)
-  const hasTriedAutoRejoin = useRef(false);
-
-  // Auto-focus name input when code is prefilled from URL
-  useEffect(() => {
-    if (initialCode && !isRestoring && !playerId && nameInputRef.current) {
-      nameInputRef.current.focus();
-    }
-  }, [initialCode, isRestoring, playerId]);
-
-  const getByCode = useQuery(
-    api.sessions.getByCode,
-    joinCode.length === 4 ? { code: joinCode.toUpperCase() } : "skip"
-  );
-  const joinSession = useMutation(api.players.join);
-
-  const session = useQuery(
-    api.sessions.get,
-    sessionId ? { sessionId } : "skip"
-  );
-  const player = useQuery(
-    api.players.get,
-    playerId ? { playerId } : "skip"
-  );
-  const currentQuestion = useQuery(
-    api.questions.getCurrentQuestion,
-    sessionId ? { sessionId } : "skip"
-  );
-
-  // Rope climbing state for active question visualization (Mountain component)
-  // Placed before players query since we derive player data from it during gameplay
-  const ropeClimbingState = useQuery(
-    api.answers.getRopeClimbingState,
-    sessionId ? { sessionId } : "skip"
-  ) as RopeClimbingState | null | undefined;
-
-  // Lightweight player-specific rope state for UI logic
-  // Contains counts per rope and current player's answer status (not full player lists)
-  const playerRopeState = useQuery(
-    api.answers.getPlayerRopeState,
-    sessionId && playerId ? { sessionId, playerId } : "skip"
-  ) as PlayerRopeState | null | undefined;
-
-  // Fetch full player list for lobby (shows all other players) and player count tracking
-  // During active gameplay, we use getPlayerContext for the Mountain component instead
-  const isInLobby = session?.status === "lobby";
-  const players = useQuery(
-    api.players.listBySession,
-    sessionId && isInLobby ? { sessionId } : "skip"
-  );
-
-  // Optimized subscription for active gameplay - only fetches nearby players for Mountain
-  // This reduces data transfer when there are many players spread across the mountain
-  const playerContext = useQuery(
-    api.players.getPlayerContext,
-    sessionId && playerId && !isInLobby
-      ? { sessionId, playerId, elevationRange: 150 }
-      : "skip"
-  );
-
-  // Only fetch leaderboard when needed (results phase or game finished)
-  // Use playerRopeState for phase (lighter weight than ropeClimbingState)
-  // Uses getLeaderboardSummary for optimized data transfer (top 10 + current player only)
-  const questionPhaseFromState = playerRopeState?.phase ?? null;
-  const needsLeaderboard = questionPhaseFromState === "results" || session?.status === "finished";
-  const leaderboardSummary = useQuery(
-    api.players.getLeaderboardSummary,
-    sessionId && needsLeaderboard
-      ? { sessionId, playerId: playerId ?? undefined, limit: 10 }
-      : "skip"
-  );
-
-  // Derived from playerRopeState - lightweight player-specific data
-  const hasAnswered = useMemo(() => {
-    return playerRopeState?.myAnswer.hasAnswered ?? false;
-  }, [playerRopeState]);
-
-  // Derived from playerRopeState - timing info for countdown display
-  const timingInfo = useMemo(() => {
-    if (!playerRopeState) return null;
-    return {
-      firstAnsweredAt: playerRopeState.timing.firstAnsweredAt,
-      timeLimit: playerRopeState.timing.timeLimit,
-      totalAnswers: playerRopeState.answeredCount,
-    };
-  }, [playerRopeState]);
-
-  const submitAnswer = useMutation(api.answers.submit);
-
-  // State for delayed result reveal - syncs with spectator view scissors animation
-  const [playerResultRevealed, setPlayerResultRevealed] = useState(false);
-  const revealTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const prevRevealedQuestionRef = useRef<string | null>(null);
-
-  // Calculate when this player's result should be revealed based on the snip sequence
-  // Uses playerRopeState for lightweight access to player's answer and rope correctness
-  useEffect(() => {
-    if (!playerRopeState || !currentQuestion) {
-      return;
-    }
-
-    const questionId = currentQuestion._id;
-    const isRevealed = playerRopeState.timing.isRevealed;
-
-    // Reset when question changes
-    if (questionId !== prevRevealedQuestionRef.current) {
-      prevRevealedQuestionRef.current = questionId;
-      setPlayerResultRevealed(false);
-      if (revealTimerRef.current) {
-        clearTimeout(revealTimerRef.current);
-        revealTimerRef.current = null;
-      }
-    }
-
-    // Only start timing when revealed phase begins
-    if (!isRevealed || playerResultRevealed) {
-      return;
-    }
-
-    // Use playerRopeState to check if player answered
-    const playerRopeIndex = playerRopeState.myAnswer.optionIndex;
-
-    // If player didn't answer, reveal immediately
-    if (playerRopeIndex === null) {
-      setPlayerResultRevealed(true);
-      return;
-    }
-
-    const isCorrect = playerRopeState.myAnswer.isCorrect === true;
-
-    // Get wrong rope indices and shuffle them with the same seed as Mountain.tsx
-    const wrongRopeIndices = playerRopeState.ropes
-      .filter(rope => rope.isCorrect === false)
-      .map(rope => rope.optionIndex);
-
-    const seed = hashString(questionId);
-    const shuffledWrongRopes = shuffleWithSeed(wrongRopeIndices, seed);
-
-    // Timing constants (must match Mountain.tsx reveal sequence)
-    // Phase 1: Scissors appear at 0ms
-    // Phase 2: Tension at 500ms
-    // Phase 3: Snipping starts at 1500ms
-    // Between snips: 800ms each
-    // After last snip to complete: 500ms
-    const SNIP_START_DELAY = 1500; // When snipping begins
-    const SNIP_INTERVAL = 800; // Time between each snip
-
-    let delayMs: number;
-
-    if (isCorrect) {
-      // Correct answer: reveal after ALL wrong ropes are snipped
-      // Player sees "Correct!" when their rope is spared (all others cut)
-      const numWrongRopes = shuffledWrongRopes.length;
-      if (numWrongRopes === 0) {
-        // No wrong ropes to snip, reveal immediately after tension
-        delayMs = SNIP_START_DELAY;
-      } else {
-        // Wait for all snips + completion delay
-        delayMs = SNIP_START_DELAY + (numWrongRopes - 1) * SNIP_INTERVAL + 500;
-      }
-    } else {
-      // Wrong answer: reveal when THIS player's rope is snipped
-      const snipPosition = shuffledWrongRopes.indexOf(playerRopeIndex);
-      if (snipPosition === -1) {
-        // Shouldn't happen, but fallback to immediate reveal
-        delayMs = SNIP_START_DELAY;
-      } else {
-        // Wait until this rope is snipped
-        delayMs = SNIP_START_DELAY + snipPosition * SNIP_INTERVAL;
-      }
-    }
-
-    // Set timer to reveal player's result
-    revealTimerRef.current = setTimeout(() => {
-      setPlayerResultRevealed(true);
-    }, delayMs);
-
-    return () => {
-      if (revealTimerRef.current) {
-        clearTimeout(revealTimerRef.current);
-        revealTimerRef.current = null;
-      }
-    };
-  }, [playerRopeState, currentQuestion, playerResultRevealed]);
-
-  // Track if timer has expired locally
+  // --- Timer and answer state ---
   const [timerExpired, setTimerExpired] = useState(false);
+  const [answerError, setAnswerError] = useState<string | null>(null);
 
   // Reset timerExpired and answerError when question changes
   useEffect(() => {
@@ -381,124 +96,33 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
   // If restored session is invalid (player deleted, session gone), clear it
   useEffect(() => {
     if (!isRestoring && playerId && player === null) {
-      // Player no longer exists in DB - clear stored session
-      clearCurrentSession(storedSession);
-      setPlayerId(null);
-      setSessionId(null);
+      clearSessionForPlayer(storedSession?.sessionCode ?? "", storedSession?.playerName ?? "");
     }
-  }, [isRestoring, playerId, player, storedSession]);
+  }, [isRestoring, playerId, player, storedSession, clearSessionForPlayer]);
 
   // Clear localStorage when session finishes
   useEffect(() => {
     if (session?.status === "finished" && session?.code && player?.name) {
-      clearSession(session.code, player.name);
+      clearSessionForPlayer(session.code, player.name);
     }
-  }, [session?.status, session?.code, player?.name]);
+  }, [session?.status, session?.code, player?.name, clearSessionForPlayer]);
 
-  async function handleJoin(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
+  const submitAnswer = useMutation(api.answers.submit);
 
-    if (!getByCode) {
-      setError("Game not found. Check the code and try again.");
-      return;
-    }
+  // Sound manager for immediate boop on answer submit
+  const { play } = useSoundManager();
 
-    try {
-      const trimmedName = playerName.trim();
-      const id = await joinSession({
-        sessionId: getByCode._id,
-        name: trimmedName,
-      });
-      setPlayerId(id);
-      setSessionId(getByCode._id);
-      setStoredSession(null); // Clear stored session state since we're now joined
-      saveSession(id, getByCode._id, getByCode.code, trimmedName);
-      // Update URL to bookmarkable /play/:CODE/:NAME format
-      window.history.replaceState({}, "", `/play/${getByCode.code}/${encodeURIComponent(trimmedName)}`);
-    } catch (err) {
-      setError(getFriendlyErrorMessage(err));
-    }
-  }
-
-  const handleRejoin = useCallback(async () => {
-    if (!storedSession) return;
-    setIsRejoining(true);
-    setError("");
-
-    try {
-      await reactivatePlayer({
-        playerId: storedSession.playerId as Id<"players">,
-      });
-      setPlayerId(storedSession.playerId as Id<"players">);
-      setSessionId(storedSession.sessionId as Id<"sessions">);
-      // Update URL to bookmarkable /play/:CODE/:NAME format
-      window.history.replaceState({}, "", `/play/${storedSession.sessionCode}/${encodeURIComponent(storedSession.playerName)}`);
-      setStoredSession(null);
-    } catch (err) {
-      // Session/player no longer valid - clear and show join form
-      clearCurrentSession(storedSession);
-      setStoredSession(null);
-      setError(getFriendlyErrorMessage(err));
-    } finally {
-      setIsRejoining(false);
-    }
-  }, [storedSession, reactivatePlayer]);
-
-  // Auto-rejoin when URL has code matching localStorage session
-  // This makes the URL bookmarkable - refreshing auto-rejoins
+  // Auto-focus name input when 4-char join code is entered
   useEffect(() => {
-    // Only auto-rejoin if:
-    // 1. We have an initialCode from URL (e.g., /play/ABCD or /play/ABCD/PlayerName)
-    // 2. We have a valid stored session
-    // 3. The stored session code matches the URL code
-    // 4. If URL has a name, it must match the stored session name
-    // 5. We haven't already tried auto-rejoining
-    // 6. We're not already rejoining or have a playerId
-    const codeMatches = initialCode && storedSession &&
-      storedSession.sessionCode.toUpperCase() === initialCode.toUpperCase();
-    const nameMatches = !initialName || storedSession?.playerName === initialName;
-
-    if (
-      codeMatches &&
-      nameMatches &&
-      checkStoredSession &&
-      !hasTriedAutoRejoin.current &&
-      !isRejoining &&
-      !playerId
-    ) {
-      hasTriedAutoRejoin.current = true;
-      handleRejoin();
+    if (joinCode.length === 4 && nameInputRef.current && !playerName) {
+      nameInputRef.current.focus();
     }
-  }, [initialCode, initialName, storedSession, checkStoredSession, isRejoining, playerId, handleRejoin]);
-
-  function handleStartFresh() {
-    clearCurrentSession(storedSession);
-    setStoredSession(null);
-    setJoinCode(initialCode ?? "");
-    setPlayerName("");
-  }
-
-  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-
-  function handleLeave() {
-    clearCurrentSession(storedSession);
-    setStoredSession(null);
-    setPlayerId(null);
-    setSessionId(null);
-    setJoinCode("");
-    setPlayerName("");
-    setShowLeaveConfirm(false);
-  }
-
-  // Track answer submission error separately (for toast display during gameplay)
-  const [answerError, setAnswerError] = useState<string | null>(null);
+  }, [joinCode, nameInputRef, playerName]);
 
   async function handleAnswer(optionIndex: number) {
     if (!currentQuestion || !playerId) return;
-
-    // Play boop sound immediately on answer submit
     play("boop");
+    navigator.vibrate?.(30);
 
     try {
       await submitAnswer({
@@ -512,88 +136,7 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
     }
   }
 
-  // Play reveal sounds when player's result is revealed (synced with scissors animation)
-  // Uses playerRopeState for lightweight access to player's answer result
-  useEffect(() => {
-    if (!playerRopeState || !currentQuestion) return;
-
-    const questionId = currentQuestion._id;
-
-    // Only play sounds when playerResultRevealed becomes true
-    if (playerResultRevealed && hasPlayedRevealSoundsRef.current !== questionId) {
-      hasPlayedRevealSoundsRef.current = questionId;
-
-      const didAnswer = playerRopeState.myAnswer.hasAnswered;
-
-      if (didAnswer) {
-        const isCorrect = playerRopeState.myAnswer.isCorrect === true;
-
-        if (isCorrect) {
-          // Play happy sound for correct answer
-          play("blobHappy");
-        } else {
-          // Play snip then sad sound for wrong answer
-          play("snip");
-          setTimeout(() => {
-            play("blobSad");
-          }, 300);
-        }
-      }
-    }
-
-    // Reset when question changes (playerResultRevealed will also reset)
-    if (!playerResultRevealed) {
-      hasPlayedRevealSoundsRef.current = null;
-    }
-  }, [playerRopeState, currentQuestion?._id, play, playerResultRevealed]);
-
-  // Play pop/giggle sounds when new players join the lobby
-  useEffect(() => {
-    if (!players) return;
-
-    const currentCount = players.length;
-    const prevCount = prevPlayerCountRef.current;
-
-    if (currentCount > prevCount && prevCount > 0) {
-      // New player(s) joined! Play random sound (weighted toward pop)
-      const sounds: SoundType[] = ["pop", "pop", "pop", "giggle"];
-      const sound = sounds[Math.floor(Math.random() * sounds.length)]!;
-      play(sound);
-    }
-
-    prevPlayerCountRef.current = currentCount;
-  }, [players?.length, play]);
-
-  // Play sound when a new question is shown (transition TO question_shown phase)
-  // Uses playerRopeState for lightweight phase tracking
-  const currentQuestionPhase = playerRopeState?.phase ?? null;
-  useEffect(() => {
-    const prevPhase = prevQuestionPhaseRef.current;
-
-    // Only play sound when transitioning TO question_shown from a different phase
-    if (currentQuestionPhase === "question_shown" && prevPhase !== "question_shown" && prevPhase !== null) {
-      play("questionReveal");
-    }
-
-    prevQuestionPhaseRef.current = currentQuestionPhase;
-  }, [currentQuestionPhase, play]);
-
-  // Play "Get Ready!" sound when entering pre_game phase (game is about to start)
-  const prevSessionPhaseRef = useRef<string | null>(null);
-  const isPreGame = session?.status === "active" && session?.questionPhase === "pre_game";
-  useEffect(() => {
-    const currentPhase = isPreGame ? "pre_game" : session?.status ?? null;
-    const prevPhase = prevSessionPhaseRef.current;
-
-    // Play sound when transitioning INTO pre_game phase
-    if (isPreGame && prevPhase !== "pre_game") {
-      play("getReady");
-    }
-
-    prevSessionPhaseRef.current = currentPhase;
-  }, [isPreGame, session?.status, play]);
-
-  // Memoized values for lobby display (must be before early returns)
+  // --- Memoized values for lobby display ---
   const otherPlayers = useMemo(() =>
     players?.filter((p) => p._id !== playerId) ?? [],
     [players, playerId]
@@ -604,18 +147,9 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
     [player?.name]
   );
 
-  // Compute shuffled options for deterministic randomization
-  // Uses session code + question index as seed so all views see the same order
-  const shuffledAnswers = useMemo(() => {
-    if (!currentQuestion || !session?.code || session.currentQuestionIndex < 0) {
-      return null;
-    }
-    return shuffleOptions(
-      currentQuestion.options,
-      session.code,
-      session.currentQuestionIndex
-    );
-  }, [currentQuestion, session?.code, session?.currentQuestionIndex]);
+  // ═══════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════
 
   // Loading - checking for stored session
   if (isRestoring) {
@@ -628,7 +162,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
 
   // Not joined yet - show rejoin UI or join form
   if (!playerId || !sessionId) {
-    // Show rejoin UI if we have a valid stored session
     if (storedSession && checkStoredSession) {
       return (
         <div className="player-view">
@@ -666,7 +199,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
       );
     }
 
-    // Show join form
     return (
       <div className="player-view">
         <button onClick={onBack}>- Back</button>
@@ -678,7 +210,7 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
             value={joinCode}
             onChange={(e) => {
               setJoinCode(e.target.value.toUpperCase());
-              setError(""); // Clear error when user types
+              setError("");
             }}
             maxLength={4}
           />
@@ -689,7 +221,7 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
             value={playerName}
             onChange={(e) => {
               setPlayerName(e.target.value);
-              setError(""); // Clear error when user types
+              setError("");
             }}
           />
           <ErrorMessage
@@ -707,19 +239,19 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
 
   // Game finished - show final results
   if (session?.status === "finished") {
-    // Build players array for Leaderboard component from summary data
-    // If current player is outside top 10, they'll be shown separately by Leaderboard
     const leaderboardPlayers = leaderboardSummary?.top ?? [];
 
     return (
       <div className="player-view">
         <h2>Game Over!</h2>
-        <p>Your elevation: {player?.elevation ?? 0}m</p>
-        {leaderboardSummary && leaderboardSummary.currentRank && leaderboardSummary.currentRank > 10 && (
-          <p className="rank-info">
-            You finished #{leaderboardSummary.currentRank} of {leaderboardSummary.totalPlayers} players
-          </p>
-        )}
+
+        <ShareResults
+          playerName={player?.name ?? "Player"}
+          elevation={player?.elevation ?? 0}
+          rank={leaderboardSummary?.currentRank ?? null}
+          totalPlayers={leaderboardSummary?.totalPlayers ?? 0}
+        />
+
         <h3>Leaderboard</h3>
         <Leaderboard
           players={leaderboardPlayers}
@@ -743,7 +275,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
           </div>
           <p className="session-code">Session: {session.code}</p>
 
-          {/* Other players' blobs - arranged in a row */}
           {otherPlayers.length > 0 && (
             <div className="other-players-blobs">
               {otherPlayers.map((p) => {
@@ -763,7 +294,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
             </div>
           )}
 
-          {/* Current player's blob - larger and centered */}
           {currentPlayerBlob && player && (
             <div className="current-player-blob blob-breathe">
               <Blob config={currentPlayerBlob} size={120} />
@@ -782,7 +312,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
             Leave game
           </button>
 
-          {/* Leave confirmation dialog */}
           {showLeaveConfirm && (
             <div className="leave-confirm-overlay" onClick={() => setShowLeaveConfirm(false)}>
               <div className="leave-confirm-dialog" onClick={(e) => e.stopPropagation()}>
@@ -804,12 +333,8 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
   }
 
   // Game active - show current question
-  // Use playerRopeState for phase (lightweight query)
-  const questionPhase = playerRopeState?.phase ?? "answers_shown";
-
   return (
     <div className="player-view">
-      {/* Answer submission error toast */}
       <ErrorMessage
         message={answerError}
         onDismiss={() => setAnswerError(null)}
@@ -823,7 +348,10 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
         <MuteToggle size={32} />
       </div>
 
-      {/* Mountain visualization - shows player's position using nearby players only */}
+      {playerContext === undefined && session?.status === "active" && (
+        <div className="skeleton-mountain" />
+      )}
+
       {playerContext && playerContext.nearbyPlayers.length > 0 && playerId && (
         <Mountain
           players={playerContext.nearbyPlayers.map((p) => ({
@@ -859,7 +387,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
         </div>
       ) : currentQuestion ? (
         <div className="question">
-          {/* Timer display - only show during answers_shown phase or later */}
           {questionPhase !== "question_shown" && (
             <div className="question-timer">
               <Timer
@@ -877,12 +404,10 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
 
           <h2>{currentQuestion.text}</h2>
 
-          {/* Phase: question_shown - waiting for host to show answers */}
           {questionPhase === "question_shown" && (
             <p className="waiting">Waiting for host to show answers...</p>
           )}
 
-          {/* Phase: answers_shown - show answer buttons (shuffled order) */}
           {questionPhase === "answers_shown" && (
             hasAnswered ? (
               <p className="waiting">Waiting for results...</p>
@@ -912,22 +437,18 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
             )
           )}
 
-          {/* Phase: revealed - show answer feedback with all options (shuffled order) */}
           {questionPhase === "revealed" && playerRopeState && (() => {
-            // Use playerRopeState for lightweight access to player's answer data
             const playerSelectedOriginalIndex = playerRopeState.myAnswer.optionIndex;
             const isCorrect = playerRopeState.myAnswer.isCorrect === true;
             const didAnswer = playerRopeState.myAnswer.hasAnswered;
             const elevationGain = playerRopeState.myAnswer.elevationGain ?? 0;
 
-            // Use shuffled options for display (same order as when answering)
             const optionsToDisplay = shuffledAnswers
               ? shuffledAnswers.shuffledOptions
               : currentQuestion.options.map((opt, i) => ({ option: opt, originalIndex: i, shuffledIndex: i }));
 
             return (
               <div className="reveal-feedback">
-                {/* Tension state while waiting for result - show scissors animation */}
                 {!playerResultRevealed && (
                   <div className="result-banner tension">
                     <span className="scissors-icon">✂️</span>
@@ -935,7 +456,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
                   </div>
                 )}
 
-                {/* Prominent result message - only show after player's result is revealed */}
                 {playerResultRevealed && (
                   didAnswer ? (
                     <div className={`result-banner ${isCorrect ? 'correct' : 'wrong'}`}>
@@ -959,7 +479,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
                   )
                 )}
 
-                {/* Show all options with highlighting (in shuffled order) - only after result revealed */}
                 {playerResultRevealed && (
                   <div className="options revealed">
                     {optionsToDisplay.map((item, visualIndex) => {
@@ -979,7 +498,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
                         className += ' player-selected';
                       }
 
-                      // Label based on visual position (A, B, C, D for positions 0, 1, 2, 3)
                       const visualLabel = String.fromCharCode(65 + visualIndex);
 
                       return (
@@ -997,7 +515,6 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
             );
           })()}
 
-          {/* Phase: results - show leaderboard with player's position */}
           {questionPhase === "results" && leaderboardSummary && (
             <div className="results-leaderboard">
               <h3>Leaderboard</h3>
@@ -1015,6 +532,14 @@ export function PlayerView({ onBack, initialCode, initialName }: Props) {
               />
             </div>
           )}
+        </div>
+      ) : currentQuestion === undefined ? (
+        <div className="skeleton-question">
+          <div className="skeleton-line skeleton-line-wide" />
+          <div className="skeleton-line skeleton-line-medium" />
+          <div className="skeleton-option" />
+          <div className="skeleton-option" />
+          <div className="skeleton-option" />
         </div>
       ) : (
         <p>Waiting for question...</p>

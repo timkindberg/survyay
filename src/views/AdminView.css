@@ -1,0 +1,769 @@
+/* ===================================
+   Admin View - Dashboard Layout
+   =================================== */
+
+.admin-view {
+  background: #f8fafc;
+  min-height: 100vh;
+  margin: -20px;
+  padding: 0;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.header-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.header-btn.secondary {
+  background: #64748b;
+}
+
+.header-btn.secondary:hover {
+  background: #475569;
+}
+
+.header-btn.danger {
+  background: #ef4444;
+}
+
+.header-btn.danger:hover {
+  background: #dc2626;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1e293b;
+}
+
+.back-btn {
+  background: #64748b;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+
+.back-btn:hover {
+  background: #475569;
+}
+
+.session-code-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f1f5f9;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.code-label {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.code-copy-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 2px solid transparent;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.code-copy-button:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.code-copy-button .code-value {
+  font-family: monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  letter-spacing: 0.15em;
+  color: #1e293b;
+}
+
+.code-copy-button .copy-icon {
+  font-size: 1.1rem;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.code-copy-button.copied .copy-icon {
+  animation: copy-check 0.4s ease;
+}
+
+@keyframes copy-check {
+  0% { transform: scale(1) rotate(0); }
+  50% { transform: scale(1.2) rotate(-10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.code-value {
+  font-family: monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  letter-spacing: 0.15em;
+  color: #1e293b;
+}
+
+.play-link-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #10b981;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.play-link-button:hover {
+  background: #059669;
+  transform: scale(1.02);
+}
+
+.play-link-button.copied {
+  background: #34d399;
+  animation: link-copied 0.3s ease;
+}
+
+.host-link-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f59e0b;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.host-link-button:hover {
+  background: #d97706;
+  transform: scale(1.02);
+}
+
+.host-link-button.copied {
+  background: #fbbf24;
+  animation: link-copied 0.3s ease;
+}
+
+@keyframes link-copied {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.spectator-btn {
+  background: #0ea5e9;
+}
+
+.spectator-btn:hover {
+  background: #0284c7;
+}
+
+/* Admin content (session list view) */
+.admin-content {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.admin-create-section {
+  margin-bottom: 32px;
+}
+
+.create-session-btn {
+  font-size: 1.1rem;
+  padding: 16px 32px;
+}
+
+.admin-sessions-section h2 {
+  margin-bottom: 16px;
+  color: #1e293b;
+}
+
+/* Admin dashboard layout - single column */
+.admin-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  max-width: 850px;
+  margin: 0 auto;
+  min-height: calc(100vh - 80px);
+}
+
+/* Control sections */
+.control-section {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.control-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.control-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-btn {
+  width: 100%;
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+}
+
+.control-btn.danger {
+  background: #ef4444;
+}
+
+.control-btn.danger:hover {
+  background: #dc2626;
+}
+
+/* Current question status inline */
+.current-question-status-inline {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cqs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.cqs-header h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.question-progress {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6366f1;
+  background: #f0f0ff;
+  padding: 4px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Phase badges for admin view */
+.phase-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.phase-question_shown {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.phase-answers_shown {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.phase-revealed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.phase-results {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.answer-stats {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.answer-stats .stat {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+/* Admin sections */
+.admin-section {
+  background: white;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-section:first-child {
+  margin-top: 0;
+}
+
+/* Session info section */
+.session-info-section {
+  border-top: 4px solid #6366f1;
+}
+
+.session-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Controls section */
+.controls-section .control-buttons {
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #1e293b;
+}
+
+/* Players section */
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.player-rank {
+  font-weight: bold;
+  color: #6366f1;
+  font-size: 0.875rem;
+  min-width: 28px;
+}
+
+.player-name {
+  flex: 1;
+  font-weight: 500;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.player-elevation {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Inactive player styling */
+.player-card.inactive {
+  opacity: 0.6;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.player-card.inactive .player-name {
+  color: #64748b;
+}
+
+.player-card.inactive .player-rank {
+  color: #94a3b8;
+}
+
+.inactive-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* Kick button */
+.kick-btn {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.kick-btn:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
+.kick-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.empty-message {
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
+  padding: 24px;
+}
+
+/* Compact question list for admin */
+.question-list.compact .question-item {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+
+.question-list.compact .question-text {
+  font-size: 0.9rem;
+}
+
+.question-list.compact .question-number {
+  min-width: 20px;
+  font-size: 0.85rem;
+}
+
+.question-list.compact .question-options {
+  font-size: 0.75rem;
+}
+
+/* Add question form in admin */
+.admin-section .add-question-form {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+/* Shuffle checkbox */
+.shuffle-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.shuffle-checkbox:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+}
+
+.shuffle-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.shuffle-checkbox span {
+  flex: 1;
+}
+
+/* Follow-up textarea in admin forms */
+.follow-up-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 60px;
+  background: white;
+}
+
+.follow-up-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.follow-up-textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Admin view player cards - rank styling */
+.player-card.rank-1 {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.player-card.rank-1 .player-rank {
+  color: #b8860b;
+}
+
+.player-card.rank-2 {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05));
+  border-color: rgba(192, 192, 192, 0.4);
+}
+
+.player-card.rank-2 .player-rank {
+  color: #757575;
+}
+
+.player-card.rank-3 {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05));
+  border-color: rgba(205, 127, 50, 0.4);
+}
+
+.player-card.rank-3 .player-rank {
+  color: #a0522d;
+}
+
+/* Admin section highlight during results phase */
+.players-section.results-active {
+  border: 2px solid rgba(99, 102, 241, 0.4);
+  animation: results-section-pulse 2s ease-in-out infinite;
+}
+
+@keyframes results-section-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  }
+}
+
+.players-section.results-active .section-header h2 {
+  color: #6366f1;
+}
+
+/* Pre-game admin status */
+.pre-game-status {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.pre-game-message {
+  color: #94a3b8;
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+.phase-badge.phase-pre_game {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+/* Summit Threshold Control */
+.summit-threshold-control {
+  margin: 24px 0;
+  padding: 16px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+}
+
+.summit-threshold-control h3 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: #0369a1;
+}
+
+.threshold-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.threshold-row label {
+  font-weight: 500;
+  color: #334155;
+}
+
+.threshold-row select {
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 2px solid #0ea5e9;
+  border-radius: 6px;
+  background: white;
+  color: #0369a1;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.threshold-row select:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+
+.threshold-hint {
+  margin: 8px 0 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* ===================================
+   Admin Skeleton Loading States
+   =================================== */
+
+.skeleton-player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.skeleton-player-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+
+.skeleton-player-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-player-name {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  flex: 1;
+}
+
+.skeleton-question-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.skeleton-question-number {
+  width: 24px;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-question-text {
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  flex: 1;
+}

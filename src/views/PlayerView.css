@@ -1,0 +1,622 @@
+/* ============================================
+   PLAYER VIEW STYLES
+   ============================================ */
+
+.player-view {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Score bar */
+.score-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #6366f1;
+  color: white;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.score-bar span:first-child {
+  flex: 1;
+}
+
+/* Mute toggle button styles */
+.mute-toggle:hover {
+  transform: scale(1.1);
+}
+
+.mute-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Question styles */
+.question h2 {
+  margin-bottom: 20px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.options button {
+  text-align: left;
+  padding: 16px;
+  background: #e0e7ff;
+  color: #3730a3;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.option-label {
+  font-weight: 700;
+  color: #4f46e5;
+  flex-shrink: 0;
+}
+
+.options button:hover {
+  background: #c7d2fe;
+}
+
+/* Reset focus styles to prevent sticky hover-like appearance on mobile */
+.options button:focus {
+  outline: none;
+}
+
+.options button:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Ensure active state matches hover for consistent tap feedback */
+.options button:active {
+  background: #c7d2fe;
+}
+
+/* On touch devices, disable hover effect to prevent sticky state after tap */
+@media (hover: none) {
+  .options button:hover {
+    background: #e0e7ff;
+  }
+  .options button:active {
+    background: #c7d2fe;
+  }
+}
+
+.waiting {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+/* ===== REVEAL FEEDBACK STYLES ===== */
+
+.reveal-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.result-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  animation: result-pop 0.3s ease-out;
+}
+
+@keyframes result-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.result-banner.correct {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+}
+
+.result-banner.wrong {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+}
+
+.result-banner.no-answer {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  color: white;
+}
+
+.result-banner.tension {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+  animation: tension-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes tension-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 30px rgba(245, 158, 11, 0.6);
+  }
+}
+
+.scissors-icon {
+  font-size: 2rem;
+  animation: scissors-icon-wobble 0.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes scissors-icon-wobble {
+  0%, 100% { transform: rotate(-15deg); }
+  50% { transform: rotate(15deg); }
+}
+
+.tension-text {
+  font-size: 1.8rem;
+  letter-spacing: 0.3em;
+  animation: tension-dots 1s steps(3, end) infinite;
+}
+
+@keyframes tension-dots {
+  0% { opacity: 0.3; }
+  33% { opacity: 0.6; }
+  66% { opacity: 0.9; }
+  100% { opacity: 0.3; }
+}
+
+.result-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.elevation-gain {
+  font-size: 1.1rem;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+/* Revealed answer options */
+.options.revealed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-revealed {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  gap: 8px;
+}
+
+.option-revealed .option-label {
+  font-weight: 700;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.option-revealed.correct-answer .option-label {
+  color: #065f46;
+}
+
+.option-revealed.wrong-selection .option-label {
+  color: #991b1b;
+}
+
+.option-revealed.correct-answer {
+  background: #d1fae5;
+  border-color: #10b981;
+}
+
+.option-revealed.wrong-selection {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.option-revealed.player-selected {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+.option-text {
+  flex: 1;
+  font-weight: 500;
+  color: #374151;
+}
+
+.correct-answer .option-text {
+  color: #065f46;
+}
+
+.wrong-selection .option-text {
+  color: #991b1b;
+}
+
+.your-pick {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #6366f1;
+  color: white;
+  margin-left: 8px;
+}
+
+.correct-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #10b981;
+  color: white;
+  margin-left: 8px;
+}
+
+/* ============================================
+   PLAYER VIEW - Pre-game phase
+   ============================================ */
+
+.player-pregame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 200px;
+}
+
+.player-pregame-content {
+  text-align: center;
+}
+
+.player-pregame-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #6366f1;
+  margin: 0 0 8px 0;
+  animation: pregame-pulse 1.5s ease-in-out infinite;
+}
+
+.player-pregame-subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0 0 20px 0;
+  font-style: italic;
+  animation: pregame-fade 2s ease-in-out infinite;
+}
+
+.player-pregame-blob {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.player-pregame-players {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin: 16px 0 0 0;
+}
+
+@keyframes pregame-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes pregame-fade {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ============================================
+   PLAYER WAITING LOBBY - Blob Animations
+   ============================================ */
+
+/* Waiting lobby container */
+.waiting-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.waiting-lobby h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+  color: #64748b;
+}
+
+.waiting-lobby .session-code {
+  font-family: monospace;
+  font-size: 1rem;
+  color: #94a3b8;
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+}
+
+/* Other players section */
+.other-players-blobs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  min-height: 80px;
+}
+
+.waiting-blob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.3s ease;
+}
+
+.waiting-blob span {
+  font-size: 0.75rem;
+  color: #64748b;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Current player section */
+.current-player-blob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+  border-radius: 20px;
+  border: 2px solid rgba(99, 102, 241, 0.2);
+}
+
+.current-player-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.player-count {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+/* Leave session link in waiting lobby - subtle, de-emphasized */
+.leave-link {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  padding: 8px 12px;
+  margin-top: 32px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+
+.leave-link:hover {
+  color: #ef4444;
+  background: transparent;
+}
+
+/* Leave confirmation dialog overlay */
+.leave-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.15s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.leave-confirm-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 300px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  animation: dialog-pop 0.2s ease-out;
+}
+
+@keyframes dialog-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.leave-confirm-dialog p {
+  margin: 0 0 20px 0;
+  font-size: 1rem;
+  color: #374151;
+}
+
+.leave-confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.leave-confirm-cancel {
+  background: #6366f1;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.leave-confirm-cancel:hover {
+  background: #4f46e5;
+}
+
+.leave-confirm-leave {
+  background: transparent;
+  border: 2px solid #ef4444;
+  color: #ef4444;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.leave-confirm-leave:hover {
+  background: #fef2f2;
+}
+
+/* ============================================
+   REJOIN PANEL - Session restoration UI
+   ============================================ */
+
+.rejoin-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.rejoin-panel h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  color: #1e293b;
+}
+
+.rejoin-message {
+  margin: 0 0 20px 0;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.rejoin-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+  border-radius: 16px;
+  border: 2px solid rgba(99, 102, 241, 0.2);
+  margin-bottom: 20px;
+  min-width: 200px;
+}
+
+.rejoin-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.rejoin-session {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #64748b;
+  letter-spacing: 0.1em;
+}
+
+.rejoin-elevation {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.rejoin-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.rejoin-btn {
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.rejoin-btn.primary {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.rejoin-btn.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.rejoin-btn.primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.rejoin-btn.secondary {
+  background: transparent;
+  color: #64748b;
+  border: 2px solid #e2e8f0;
+}
+
+.rejoin-btn.secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}

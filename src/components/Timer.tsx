@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import "./Timer.css";
 
 interface TimerProps {
   /** When the first answer was submitted (starts the timer) */

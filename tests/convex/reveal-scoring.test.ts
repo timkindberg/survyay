@@ -20,11 +20,13 @@ describe("reveal scoring with simplified system", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Which is correct?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -38,9 +40,9 @@ describe("reveal scoring with simplified system", () => {
       )
     );
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // 2 players choose correct answer (A), 8 choose wrong answer (B)
     // Order matters for speed bonus!
@@ -63,7 +65,7 @@ describe("reveal scoring with simplified system", () => {
     }
 
     // Reveal the answer - this should calculate scores
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Check player elevations
     const p0 = await t.run(async (ctx) => await ctx.db.get(players[0]!));
@@ -106,11 +108,13 @@ describe("reveal scoring with simplified system", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -126,9 +130,9 @@ describe("reveal scoring with simplified system", () => {
       name: "Bob",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // Both answer correctly
     await t.mutation(api.answers.submit, {
@@ -149,7 +153,7 @@ describe("reveal scoring with simplified system", () => {
     expect(p2!.elevation).toBe(0);
 
     // Reveal
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Check elevations after reveal (should be updated)
     p1 = await t.run(async (ctx) => await ctx.db.get(player1));
@@ -176,11 +180,13 @@ describe("reveal scoring with simplified system", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }, { text: "C" }],
       correctOptionIndex: 0,
@@ -194,9 +200,9 @@ describe("reveal scoring with simplified system", () => {
       )
     );
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     // First 5 answer correctly (in order), last 5 wrong
     for (let i = 0; i < 5; i++) {
@@ -214,7 +220,7 @@ describe("reveal scoring with simplified system", () => {
       });
     }
 
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     // Get all correct players' elevations
     const correctPlayers = await t.run(async (ctx) => {
@@ -260,11 +266,13 @@ describe("reveal scoring with simplified system", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
     const questionId = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Test?",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -276,9 +284,9 @@ describe("reveal scoring with simplified system", () => {
       name: "TestPlayer",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     const result = await t.mutation(api.answers.submit, {
       questionId,
@@ -317,12 +325,14 @@ describe("reveal scoring with simplified system", () => {
     for (const q of sampleQuestions) {
       await t.mutation(api.questions.remove, {
         questionId: q._id,
+        hostId: "test-host",
       });
     }
 
     // Create 2 questions
     const q1 = await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q1",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -331,6 +341,7 @@ describe("reveal scoring with simplified system", () => {
 
     await t.mutation(api.questions.create, {
       sessionId,
+      hostId: "test-host",
       text: "Q2",
       options: [{ text: "A" }, { text: "B" }],
       correctOptionIndex: 0,
@@ -342,9 +353,9 @@ describe("reveal scoring with simplified system", () => {
       name: "Player1",
     });
 
-    await t.mutation(api.sessions.start, { sessionId });
-    await t.mutation(api.sessions.nextQuestion, { sessionId });
-    await t.mutation(api.sessions.showAnswers, { sessionId });
+    await t.mutation(api.sessions.start, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.nextQuestion, { sessionId, hostId: "test-host" });
+    await t.mutation(api.sessions.showAnswers, { sessionId, hostId: "test-host" });
 
     await t.mutation(api.answers.submit, {
       questionId: q1,
@@ -352,7 +363,7 @@ describe("reveal scoring with simplified system", () => {
       optionIndex: 0,
     });
 
-    await t.mutation(api.sessions.revealAnswer, { sessionId });
+    await t.mutation(api.sessions.revealAnswer, { sessionId, hostId: "test-host" });
 
     const player = await t.run(async (ctx) => await ctx.db.get(playerId));
 

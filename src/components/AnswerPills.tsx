@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { QuestionPhase } from "../../lib/ropeTypes";
+import "./AnswerPills.css";
 
 interface AnswerOption {
   text: string;

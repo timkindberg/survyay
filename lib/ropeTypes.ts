@@ -3,9 +3,11 @@
  *
  * These types are used by both the Convex backend (queries) and
  * the React frontend (Mountain component).
+ *
+ * NOTE: Uses `string` for all IDs instead of Convex's `Id<T>` type
+ * so that lib/ has no imports from convex/ (architecture rule).
+ * Convex IDs are strings at runtime, so this is safe.
  */
-
-import type { Id } from "../convex/_generated/dataModel";
 
 /**
  * Question phase for controlling the flow of each question
@@ -20,7 +22,7 @@ export type QuestionPhase = "question_shown" | "answers_shown" | "revealed" | "r
  * A player currently on a rope (has answered the question)
  */
 export interface PlayerOnRope {
-  playerId: Id<"players">;
+  playerId: string;
   playerName: string;
   /** The elevation where they grabbed the rope (their position when answering) */
   elevationAtAnswer: number;
@@ -50,7 +52,7 @@ export interface RopeData {
 export interface RopeClimbingState {
   /** The current question being displayed */
   question: {
-    id: Id<"questions">;
+    id: string;
     text: string;
     timeLimit: number;
   };
@@ -60,7 +62,7 @@ export interface RopeClimbingState {
   ropes: RopeData[];
   /** Players who haven't answered yet (at their current elevation) */
   notAnswered: {
-    playerId: Id<"players">;
+    playerId: string;
     playerName: string;
     elevation: number;
     /** The option index from their most recent answer (for column positioning) */
@@ -96,7 +98,7 @@ export interface RopeClimbingState {
 export interface PlayerRopeState {
   /** The current question being displayed */
   question: {
-    id: Id<"questions">;
+    id: string;
     text: string;
     options: { text: string }[];
     timeLimit: number;

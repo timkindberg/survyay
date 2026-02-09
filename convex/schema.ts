@@ -33,7 +33,6 @@ export default defineSchema({
     order: v.number(),
     timeLimit: v.number(), // Seconds to answer
     enabled: v.optional(v.boolean()), // Whether question is active (default true if undefined)
-    dynamicMaxElevation: v.optional(v.number()), // Dynamic cap applied to this question (for debugging)
     followUpText: v.optional(v.string()), // Fun fact / educational content shown after reveal
   }).index("by_session", ["sessionId"]),
 

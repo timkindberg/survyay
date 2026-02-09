@@ -1,0 +1,755 @@
+/* ============================================
+   MOUNTAIN COMPONENT
+   ============================================ */
+
+.mountain {
+  background: linear-gradient(to bottom, #87CEEB 0%, #B0E2FF 30%, #E0F4FF 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.mountain-player {
+  pointer-events: none;
+}
+
+.mountain-player .blob {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ===== CURRENT PLAYER HIGHLIGHT ===== */
+/* Pulsing glow animation for the highlight circle */
+@keyframes player-highlight-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.player-highlight-circle {
+  animation: player-highlight-pulse 2s ease-in-out infinite;
+}
+
+/* Ensure the current player container has relative positioning for the highlight */
+.current-player-highlight {
+  position: relative;
+}
+
+/* Host view mountain - full width */
+.host-view .mountain {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Player view mountain - compact */
+.player-view .mountain {
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+}
+
+/* Mountain preview section */
+.mountain-preview-section .mountain {
+  width: 100% !important;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.preview-hint {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 12px 0;
+}
+
+/* Clickable mountain preview wrapper */
+.mountain-preview-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  padding: 8px;
+  margin: -8px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.mountain-preview-clickable:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.4));
+}
+
+.mountain-preview-clickable:active {
+  transform: scale(0.98);
+}
+
+.mountain-preview-clickable:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Thinking player - subtle idle animation with thinking dots */
+.thinking-player {
+  opacity: 0.7;
+  transition: left 0.3s ease-out, top 0.5s ease-out;
+}
+
+.thinking-dots {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 3px;
+  padding: 3px 6px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.thinking-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #666;
+  animation: thinking-bounce 1.2s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes thinking-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   ROPE CLIMBING ANIMATIONS
+   ============================================ */
+
+/* Initial climb animation - plays once when blob first grabs rope */
+@keyframes rope-initial-climb {
+  0% {
+    transform: translateY(0) scale(0.9);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(calc(var(--climb-offset, 0px) * 0.5)) scale(1.05) rotate(-5deg);
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(calc(var(--climb-offset, 0px) * 0.8)) scale(0.95) rotate(5deg);
+  }
+  80% {
+    transform: translateY(calc(var(--climb-offset, 0px) * 0.95)) scale(1.02) rotate(-2deg);
+  }
+  100% {
+    transform: translateY(var(--climb-offset, 0px)) scale(1) rotate(0);
+  }
+}
+
+/* Rope climber - initial climb then bobbing animation while waiting for reveal */
+.rope-climber {
+  animation: rope-initial-climb 0.5s ease-out forwards, rope-climb-bob 0.6s ease-in-out 0.5s infinite;
+}
+
+@keyframes rope-climb-bob {
+  0%, 100% {
+    transform: translateY(var(--climb-offset, 0px)) rotate(-2deg);
+  }
+  25% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 4px)) rotate(2deg);
+  }
+  50% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 8px)) rotate(-1deg);
+  }
+  75% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 4px)) rotate(1deg);
+  }
+}
+
+/* Alternate animation for some climbers to avoid synchronized movement */
+.rope-climber:nth-child(even) {
+  animation: rope-initial-climb 0.5s ease-out forwards, rope-climb-bob-alt 0.7s ease-in-out 0.5s infinite;
+}
+
+@keyframes rope-climb-bob-alt {
+  0%, 100% {
+    transform: translateY(var(--climb-offset, 0px)) rotate(2deg);
+  }
+  25% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 5px)) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 10px)) rotate(1deg);
+  }
+  75% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 5px)) rotate(-2deg);
+  }
+}
+
+/* Third variation for more variety */
+.rope-climber:nth-child(3n) {
+  animation: rope-initial-climb 0.5s ease-out forwards, rope-climb-bob-fast 0.5s ease-in-out 0.5s infinite;
+}
+
+@keyframes rope-climb-bob-fast {
+  0%, 100% {
+    transform: translateY(var(--climb-offset, 0px)) rotate(0);
+  }
+  50% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 6px)) rotate(3deg);
+  }
+}
+
+/* Rope visual enhancements */
+.rope {
+  filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Rope label styling */
+.rope-label {
+  font-family: system-ui, sans-serif;
+  font-weight: bold;
+}
+
+/* ============================================
+   ROPE CUTTING ANIMATIONS - REVEAL PHASE
+   ============================================ */
+
+/* Rope snipping/cutting animation */
+@keyframes rope-snip {
+  0% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  30% {
+    transform: scaleY(1.02);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(0.5);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scaleY(0.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+}
+
+/* Rope fray effect - the cut point */
+@keyframes rope-fray {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.5) rotate(-10deg);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8) rotate(-2deg);
+    opacity: 0.7;
+  }
+}
+
+/* Scissors snip visual effect */
+@keyframes scissors-snip {
+  0% {
+    transform: translateX(-30px) rotate(-15deg) scale(1.5);
+    opacity: 0;
+  }
+  20% {
+    transform: translateX(-10px) rotate(-10deg) scale(1.3);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(0) rotate(0deg) scale(1.2);
+    opacity: 1;
+  }
+  55% {
+    transform: translateX(0) rotate(5deg) scale(1);
+  }
+  80% {
+    transform: translateX(30px) rotate(15deg) scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(50px) rotate(20deg) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Wrong rope styling - shows cut state */
+.rope-cut {
+  animation: rope-snip 0.5s ease-in forwards;
+  transform-origin: top center;
+}
+
+/* Scissors effect overlay - positioned at top of wrong ropes */
+.rope-scissors {
+  position: absolute;
+  font-size: 64px;
+  z-index: 200;
+  opacity: 1;
+  animation: scissors-snip 0.6s ease-out forwards;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+/* Scissors hovering during tension phase - subtle threatening movement */
+.rope-scissors-hover {
+  animation: scissors-hover 0.4s ease-in-out infinite !important;
+}
+
+@keyframes scissors-hover {
+  0%, 100% {
+    transform: translateX(-5px) rotate(-5deg);
+  }
+  50% {
+    transform: translateX(5px) rotate(5deg);
+  }
+}
+
+/* Scissors actively snipping a wrong rope - synced with ladder cut */
+.rope-scissors-snipping {
+  animation: scissors-snip 0.6s ease-out forwards !important;
+}
+
+/* Scissors on correct rope - will fade out instead of snipping */
+.rope-scissors-correct {
+  animation: scissors-fade-out 0.5s ease-out forwards !important;
+  animation-delay: 0.3s;
+}
+
+@keyframes scissors-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0) rotate(0deg);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(20px) rotate(15deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(40px) rotate(30deg);
+  }
+}
+
+/* Rope wobble animation during tension phase */
+@keyframes rope-tension-wobble {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  60% {
+    transform: translateX(-1px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+}
+
+.rope-tension-wobble {
+  animation: rope-tension-wobble 0.15s ease-in-out infinite;
+}
+
+/* ============================================
+   BLOB FALLING ANIMATION - WRONG ANSWER
+   ============================================ */
+
+/* Blob falling from cut rope */
+@keyframes blob-fall-from-rope {
+  0% {
+    transform: translateY(var(--climb-offset, 0px)) rotate(0deg) scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+  15% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 10px)) rotate(-5deg) scaleY(1.15) scaleX(0.9);
+  }
+  30% {
+    transform: translateY(calc(var(--climb-offset, 0px) + 20px)) rotate(5deg) scaleY(0.85) scaleX(1.1);
+  }
+  50% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px) * 0.5)) rotate(-3deg) scaleY(0.75) scaleX(1.2);
+  }
+  70% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px) * 0.85)) rotate(2deg) scaleY(0.7) scaleX(1.25);
+  }
+  85% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px))) rotate(0deg) scaleY(0.6) scaleX(1.4);
+  }
+  92% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px))) rotate(0deg) scaleY(1.3) scaleX(0.8);
+  }
+  100% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px))) rotate(0deg) scaleY(1) scaleX(1);
+  }
+}
+
+/* Squash effect on landing - maintains fall position */
+@keyframes blob-squash-land {
+  0% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px))) scaleY(0.6) scaleX(1.4);
+  }
+  40% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px))) scaleY(0.5) scaleX(1.5);
+  }
+  70% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px))) scaleY(1.15) scaleX(0.9);
+  }
+  85% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px))) scaleY(0.95) scaleX(1.05);
+  }
+  100% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px))) scaleY(1) scaleX(1);
+  }
+}
+
+/* Falling blob styling */
+.rope-climber-falling {
+  animation: blob-fall-from-rope 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards !important;
+}
+
+/* Landed blob with squash - stays at fallen position */
+.rope-climber-landed {
+  animation: blob-squash-land 0.4s ease-out forwards !important;
+  transform: translateY(calc(var(--climb-offset, 0px) + var(--fall-distance, 120px)));
+}
+
+/* ============================================
+   CELEBRATION ANIMATION - CORRECT ANSWER
+   ============================================ */
+
+/* Successful climb animation */
+@keyframes blob-climb-success {
+  0% {
+    transform: translateY(var(--climb-offset, 0px)) scale(1);
+  }
+  20% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 20px)) scale(1.05);
+  }
+  40% {
+    transform: translateY(calc(var(--climb-offset, 0px) - 40px)) scale(1.1);
+  }
+  60% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.15);
+  }
+  80% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.2);
+  }
+  100% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.1);
+  }
+}
+
+/* Celebration bounce - MUST include translateY to maintain climb position */
+@keyframes blob-celebrate-success {
+  0%, 100% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.1) rotate(0deg);
+  }
+  20% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.2) rotate(-8deg);
+  }
+  40% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.15) rotate(6deg);
+  }
+  60% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.2) rotate(-4deg);
+  }
+  80% {
+    transform: translateY(calc(var(--climb-offset, 0px) + var(--climb-distance, -60px))) scale(1.15) rotate(3deg);
+  }
+}
+
+/* Glow effect for correct answer */
+@keyframes correct-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6))
+            drop-shadow(0 0 16px rgba(16, 185, 129, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.8))
+            drop-shadow(0 0 24px rgba(16, 185, 129, 0.6))
+            drop-shadow(0 0 32px rgba(16, 185, 129, 0.3));
+  }
+}
+
+/* Correct rope climbers - celebration */
+.rope-climber-celebrating {
+  animation: blob-climb-success 0.6s ease-out forwards,
+             blob-celebrate-success 0.5s ease-in-out 0.6s infinite,
+             correct-glow 1s ease-in-out 0.6s infinite !important;
+}
+
+/* Correct rope highlight */
+.rope-correct {
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.5))
+          drop-shadow(0 0 20px rgba(16, 185, 129, 0.3));
+}
+
+/* Correct rope label glow */
+.rope-label-correct {
+  animation: correct-glow 1s ease-in-out infinite;
+}
+
+/* ============================================
+   HTML ANSWER LABELS - Positioned at top of screen
+   ============================================ */
+
+/* Container for answer labels - top of screen, above question */
+.answer-labels-overlay {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  height: 80px;
+  z-index: 200;
+  pointer-events: none;
+}
+
+/* Individual answer label */
+.answer-label {
+  position: absolute;
+  transform: translateX(-50%);
+  background: rgba(30, 41, 59, 0.95);
+  border: 2px solid rgba(99, 102, 241, 0.5);
+  border-radius: 12px;
+  padding: 8px 16px;
+  color: white;
+  font-weight: 600;
+  text-align: center;
+  max-width: 200px;
+  min-width: 100px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.answer-label .answer-letter {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.answer-label .answer-text {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Correct answer styling */
+.answer-label.correct {
+  background: rgba(22, 101, 52, 0.95);
+  border-color: #22c55e;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4),
+              0 0 30px rgba(34, 197, 94, 0.3);
+  animation: correct-label-pulse 1s ease-in-out infinite;
+}
+
+.answer-label.correct .answer-letter {
+  color: #86efac;
+}
+
+.answer-label.correct .answer-text {
+  color: #4ade80;
+}
+
+/* Wrong answer styling */
+.answer-label.wrong {
+  background: rgba(127, 29, 29, 0.85);
+  border-color: rgba(248, 113, 113, 0.5);
+  opacity: 0.7;
+}
+
+.answer-label.wrong .answer-letter {
+  color: rgba(252, 165, 165, 0.7);
+}
+
+.answer-label.wrong .answer-text {
+  color: #fca5a5;
+  text-decoration: line-through;
+  text-decoration-color: rgba(248, 113, 113, 0.5);
+}
+
+@keyframes correct-label-pulse {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.02);
+  }
+}
+
+/* SVG rope answer labels - positioned at top of each ladder */
+.rope-answer-label {
+  opacity: 1;
+  transition: all 0.3s ease;
+  transform-origin: center center;
+  transform-box: fill-box;
+}
+
+.rope-answer-label-correct {
+  animation: rope-label-pulse 1s ease-in-out infinite;
+}
+
+.rope-answer-label-wrong {
+  opacity: 0.7;
+}
+
+@keyframes rope-label-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+/* ============================================
+   REVEAL PHASE GENERAL STYLING
+   ============================================ */
+
+/* Reveal overlay flash */
+@keyframes reveal-flash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Wrong rope climbers - stop bobbing immediately */
+.rope-climber-wrong {
+  animation: none !important;
+}
+
+/* Thinking players during reveal - fade out */
+.thinking-player-reveal {
+  animation: fade-out 0.5s ease-out forwards;
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+/* Particle burst effect for celebrations */
+@keyframes particle-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx, 0), var(--ty, 0)) scale(0);
+    opacity: 0;
+  }
+}
+
+.celebration-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: particle-burst 0.8s ease-out forwards;
+  pointer-events: none;
+}
+
+/* Follow-up text overlay (shown after reveal animations complete) */
+.follow-up-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 55;
+  animation: follow-up-slide-in 0.5s ease-out;
+}
+
+@keyframes follow-up-slide-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+  }
+}
+
+.follow-up-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(234, 88, 12, 0.95));
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 24px 40px;
+  max-width: 700px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4),
+              0 0 40px rgba(245, 158, 11, 0.3);
+}
+
+.follow-up-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.follow-up-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.follow-up-text {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: white;
+  line-height: 1.4;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}

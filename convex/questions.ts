@@ -1,9 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getEnabledQuestions } from "./helpers";
 
 export const create = mutation({
   args: {
     sessionId: v.id("sessions"),
+    hostId: v.string(),
     text: v.string(),
     options: v.array(v.object({ text: v.string() })),
     correctOptionIndex: v.optional(v.number()),
@@ -13,6 +15,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const session = await ctx.db.get(args.sessionId);
     if (!session) throw new Error("Session not found");
+    if (args.hostId !== session.hostId) throw new Error("Unauthorized: not the session host");
     if (session.status !== "lobby") throw new Error("Cannot add questions after game starts");
 
     // Get current question count for ordering
@@ -61,27 +64,21 @@ export const getCurrentQuestion = query({
     if (!session) return null;
     if (session.currentQuestionIndex < 0) return null;
 
-    const questions = await ctx.db
-      .query("questions")
-      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-      .collect();
-
-    // Filter to only enabled questions (undefined or true means enabled)
-    const sorted = questions
-      .filter((q) => q.enabled !== false)
-      .sort((a, b) => a.order - b.order);
-    return sorted[session.currentQuestionIndex] ?? null;
+    const enabledQuestions = await getEnabledQuestions(ctx, args.sessionId);
+    return enabledQuestions[session.currentQuestionIndex] ?? null;
   },
 });
 
 export const remove = mutation({
-  args: { questionId: v.id("questions") },
+  args: { questionId: v.id("questions"), hostId: v.string() },
   handler: async (ctx, args) => {
     const question = await ctx.db.get(args.questionId);
     if (!question) throw new Error("Question not found");
 
     const session = await ctx.db.get(question.sessionId);
-    if (session && session.status !== "lobby") {
+    if (!session) throw new Error("Session not found");
+    if (args.hostId !== session.hostId) throw new Error("Unauthorized: not the session host");
+    if (session.status !== "lobby") {
       throw new Error("Cannot delete questions after game starts");
     }
 
@@ -92,6 +89,7 @@ export const remove = mutation({
 export const update = mutation({
   args: {
     questionId: v.id("questions"),
+    hostId: v.string(),
     text: v.optional(v.string()),
     options: v.optional(v.array(v.object({ text: v.string() }))),
     correctOptionIndex: v.optional(v.number()),
@@ -103,7 +101,9 @@ export const update = mutation({
     if (!question) throw new Error("Question not found");
 
     const session = await ctx.db.get(question.sessionId);
-    if (session && session.status !== "lobby") {
+    if (!session) throw new Error("Session not found");
+    if (args.hostId !== session.hostId) throw new Error("Unauthorized: not the session host");
+    if (session.status !== "lobby") {
       throw new Error("Cannot edit questions after game starts");
     }
 
@@ -134,6 +134,7 @@ export const hasAnswers = query({
 export const reorder = mutation({
   args: {
     questionId: v.id("questions"),
+    hostId: v.string(),
     direction: v.union(v.literal("up"), v.literal("down")),
   },
   handler: async (ctx, args) => {
@@ -142,6 +143,7 @@ export const reorder = mutation({
 
     const session = await ctx.db.get(question.sessionId);
     if (!session) throw new Error("Session not found");
+    if (args.hostId !== session.hostId) throw new Error("Unauthorized: not the session host");
 
     // Check if question has answers (is completed)
     const answers = await ctx.db
@@ -196,11 +198,16 @@ export const reorder = mutation({
 export const setEnabled = mutation({
   args: {
     questionId: v.id("questions"),
+    hostId: v.string(),
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
     const question = await ctx.db.get(args.questionId);
     if (!question) throw new Error("Question not found");
+
+    const session = await ctx.db.get(question.sessionId);
+    if (!session) throw new Error("Session not found");
+    if (args.hostId !== session.hostId) throw new Error("Unauthorized: not the session host");
 
     // Check if question has answers (is completed)
     const answers = await ctx.db
@@ -242,6 +249,7 @@ export const exportQuestions = query({
 export const importQuestions = mutation({
   args: {
     sessionId: v.id("sessions"),
+    hostId: v.string(),
     questions: v.array(
       v.object({
         text: v.string(),
@@ -255,6 +263,7 @@ export const importQuestions = mutation({
   handler: async (ctx, args) => {
     const session = await ctx.db.get(args.sessionId);
     if (!session) throw new Error("Session not found");
+    if (args.hostId !== session.hostId) throw new Error("Unauthorized: not the session host");
     if (session.status !== "lobby") throw new Error("Can only import questions in lobby state");
 
     // Validate questions
@@ -307,10 +316,12 @@ export const importQuestions = mutation({
 export const shuffleQuestions = mutation({
   args: {
     sessionId: v.id("sessions"),
+    hostId: v.string(),
   },
   handler: async (ctx, args) => {
     const session = await ctx.db.get(args.sessionId);
     if (!session) throw new Error("Session not found");
+    if (args.hostId !== session.hostId) throw new Error("Unauthorized: not the session host");
     if (session.status !== "lobby") throw new Error("Can only shuffle questions in lobby state");
 
     // Get all questions

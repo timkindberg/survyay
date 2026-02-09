@@ -1,0 +1,344 @@
+/* ============================================
+   AI QUESTION MODAL - Modal for AI question generation API
+   ============================================ */
+
+.question-actions-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.export-button,
+.import-button {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-button:hover,
+.import-button:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.ai-question-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.ai-question-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.15s ease-out;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: dialog-pop 0.2s ease-out;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1e293b;
+}
+
+.modal-close {
+  background: #e5e7eb;
+  color: #374151;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.modal-close:hover {
+  background: #d1d5db;
+  transform: rotate(90deg);
+}
+
+.modal-body {
+  padding: 32px;
+}
+
+.modal-description {
+  font-size: 1rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.api-section {
+  margin-bottom: 32px;
+}
+
+.api-section h3 {
+  font-size: 1.1rem;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.code-block {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 20px;
+  border-radius: 12px;
+  font-family: "Monaco", "Menlo", monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 12px 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.copy-button {
+  background: #6366f1;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  max-width: 300px;
+}
+
+.copy-button:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.copy-button.copied {
+  background: #10b981;
+}
+
+.api-info {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 24px;
+}
+
+.api-info h4 {
+  font-size: 1rem;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.api-info ol {
+  margin: 12px 0;
+  padding-left: 24px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+.api-info .note {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-top: 16px;
+  padding: 12px;
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  border-radius: 4px;
+}
+
+.modal-footer {
+  padding: 20px 32px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-footer button {
+  padding: 12px 32px;
+}
+
+/* ========================================
+   Category Selector Styles
+   ======================================== */
+
+.category-selector {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.category-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.category-selector-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #334155;
+}
+
+.category-selector-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.category-action-btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 6px;
+}
+
+.category-action-btn:hover {
+  background: #cbd5e1;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.category-chip:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+}
+
+.category-chip.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.category-chip input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #6366f1;
+}
+
+.category-label {
+  flex: 1;
+  color: #334155;
+}
+
+.category-count {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.category-generator-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.question-count-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.question-count-control label {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.question-count-control input {
+  width: 70px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.regenerate-button {
+  padding: 10px 20px;
+  font-size: 0.95rem;
+}
+
+.regenerate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.category-help-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  flex: 1;
+  text-align: right;
+}

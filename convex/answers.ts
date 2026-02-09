@@ -2,7 +2,8 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { calculateElevationGain, SUMMIT } from "../lib/elevation";
 import { PRESENCE_TIMEOUT_MS } from "../lib/constants";
-import type { Id } from "./_generated/dataModel";
+import type { PlayerOnRope, QuestionPhase, RopeClimbingState } from "../lib/ropeTypes";
+import { getEnabledQuestions } from "./helpers";
 
 export const submit = mutation({
   args: {
@@ -13,6 +14,17 @@ export const submit = mutation({
   handler: async (ctx, args) => {
     const question = await ctx.db.get(args.questionId);
     if (!question) throw new Error("Question not found");
+
+    // Validate optionIndex is within bounds
+    if (
+      !Number.isInteger(args.optionIndex) ||
+      args.optionIndex < 0 ||
+      args.optionIndex >= question.options.length
+    ) {
+      throw new Error(
+        `Invalid option index: must be 0-${question.options.length - 1}`
+      );
+    }
 
     const player = await ctx.db.get(args.playerId);
     if (!player) throw new Error("Player not found");
@@ -227,17 +239,6 @@ export const isQuestionOpen = query({
 });
 
 /**
- * Player info for rope climbing visualization
- */
-export interface PlayerOnRope {
-  playerId: string;
-  playerName: string;
-  elevationAtAnswer: number; // Where they grabbed the rope
-  answeredAt: number; // For ordering on the rope
-  elevationGain?: number; // Populated after reveal (base + speed bonus)
-}
-
-/**
  * Result of getPlayersOnRopes query
  */
 export interface PlayersOnRopesResult {
@@ -316,45 +317,7 @@ export const getPlayersOnRopes = query({
   },
 });
 
-/**
- * Question phase for controlling the flow of each question
- */
-export type QuestionPhase = "question_shown" | "answers_shown" | "revealed" | "results";
-
-/**
- * Complete rope climbing state for the Mountain component.
- * Combines question data, player positions, and timing info.
- */
-export interface RopeClimbingState {
-  question: {
-    id: string;
-    text: string;
-    timeLimit: number;
-  };
-  /** Current phase of the question flow */
-  questionPhase: QuestionPhase;
-  ropes: {
-    optionText: string;
-    optionIndex: number;
-    players: PlayerOnRope[];
-    isCorrect: boolean | null; // null until revealed
-  }[];
-  notAnswered: {
-    playerId: string;
-    playerName: string;
-    elevation: number;
-    lastOptionIndex: number | null;
-  }[];
-  timing: {
-    firstAnsweredAt: number | null;
-    timeLimit: number;
-    isExpired: boolean;
-    isRevealed: boolean; // true when phase is "revealed" or "results"
-  };
-  totalPlayers: number;
-  activePlayerCount: number; // Players with recent heartbeat
-  answeredCount: number;
-}
+// QuestionPhase, PlayerOnRope, and RopeClimbingState types are imported from lib/ropeTypes.ts
 
 /**
  * Get complete rope climbing state for the Mountain visualization.
@@ -368,14 +331,7 @@ export const getRopeClimbingState = query({
     if (session.currentQuestionIndex < 0) return null;
 
     // Get the current question
-    const questions = await ctx.db
-      .query("questions")
-      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-      .collect();
-
-    const enabledQuestions = questions
-      .filter((q) => q.enabled !== false)
-      .sort((a, b) => a.order - b.order);
+    const enabledQuestions = await getEnabledQuestions(ctx, args.sessionId);
 
     const question = enabledQuestions[session.currentQuestionIndex];
     if (!question) return null;
@@ -507,14 +463,7 @@ export const getPlayerRopeState = query({
     if (session.currentQuestionIndex < 0) return null;
 
     // Get the current question
-    const questions = await ctx.db
-      .query("questions")
-      .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
-      .collect();
-
-    const enabledQuestions = questions
-      .filter((q) => q.enabled !== false)
-      .sort((a, b) => a.order - b.order);
+    const enabledQuestions = await getEnabledQuestions(ctx, sessionId);
 
     const question = enabledQuestions[session.currentQuestionIndex];
     if (!question) return null;
