@@ -54,6 +54,7 @@ export function CheckpointMarker({
             fill={isSummit ? "#FFD700" : "#FFFFFF"}
             textAnchor="start"
             fontWeight={isSummit ? "bold" : "normal"}
+            data-elevation={elevation}
           >
             {elevation}m
           </text>
@@ -82,6 +83,7 @@ export function CheckpointMarker({
             fill={isSummit ? "#FFD700" : "#FFFFFF"}
             textAnchor="end"
             fontWeight={isSummit ? "bold" : "normal"}
+            data-elevation={elevation}
           >
             {elevation}m
           </text>

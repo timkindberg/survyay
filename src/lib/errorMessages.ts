@@ -88,21 +88,3 @@ export function getFriendlyErrorMessage(error: unknown): string {
   // Otherwise, return the original message (it might already be readable)
   return rawMessage;
 }
-
-/**
- * Type for error state that includes auto-dismiss functionality
- */
-export interface ErrorState {
-  message: string;
-  timestamp: number;
-}
-
-/**
- * Creates an error state object with a timestamp for auto-dismiss
- */
-export function createErrorState(error: unknown): ErrorState {
-  return {
-    message: getFriendlyErrorMessage(error),
-    timestamp: Date.now(),
-  };
-}

@@ -691,6 +691,7 @@ const ThinkingPlayer = memo(function ThinkingPlayer({
   return (
     <div
       className={`thinking-player ${isRevealed ? "thinking-player-reveal" : ""} ${isCurrentPlayer ? "current-player-highlight" : ""}`}
+      data-player-name={playerName}
       style={{
         position: "absolute",
         left: x - size / 2,

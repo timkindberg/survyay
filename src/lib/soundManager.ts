@@ -1200,15 +1200,3 @@ export async function preloadSounds(): Promise<void> {
   osc.start();
   osc.stop(ctx.currentTime + 0.001);
 }
-
-/**
- * Clean up audio resources
- */
-export function cleanup(): void {
-  if (state.audioContext) {
-    state.audioContext.close();
-    state.audioContext = null;
-    state.isInitialized = false;
-  }
-  muteListeners.clear();
-}

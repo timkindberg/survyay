@@ -131,12 +131,3 @@ export function generateBlob(name: string): BlobConfig {
     seed,
   };
 }
-
-/**
- * Get a short display name (first 10 chars)
- */
-export function getDisplayName(name: string): string {
-  const trimmed = name.trim();
-  if (trimmed.length <= 10) return trimmed;
-  return trimmed.slice(0, 9) + "…";
-}

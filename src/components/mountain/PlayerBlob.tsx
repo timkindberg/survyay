@@ -31,6 +31,7 @@ export const MemoizedPlayerBlob = memo(function PlayerBlob({
   return (
     <div
       className={`mountain-player ${isCurrentPlayer ? "current-player-highlight" : ""}`}
+      data-player-name={player.name}
       style={{
         position: "absolute",
         left: x - size / 2,

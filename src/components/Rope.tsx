@@ -97,7 +97,7 @@ export const Rope = memo(function Rope({
   const isTensionPhase = revealPhase === "scissors";
 
   return (
-    <g className={`rope ${isCorrect ? "rope-correct" : ""} ${isTensionPhase ? "rope-tension-wobble" : ""}`}>
+    <g className={`rope ${isCorrect ? "rope-correct" : ""} ${isTensionPhase ? "rope-tension-wobble" : ""}`} data-rope-label={label}>
       {/* Rope SVG elements */}
       <defs>
         {/* Rope texture gradient */}
@@ -556,6 +556,7 @@ export const RopeClimber = memo(function RopeClimber({
   return (
     <div
       className={`${getRevealClass()} ${isCurrentPlayer ? "current-player-highlight" : ""}`}
+      data-player-name={player.name}
       style={{
         position: "absolute",
         left: x - size / 2,
