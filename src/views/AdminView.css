@@ -194,11 +194,11 @@
 }
 
 .spectator-btn {
-  background: #0ea5e9;
+  background: #10b981;
 }
 
 .spectator-btn:hover {
-  background: #0284c7;
+  background: #059669;
 }
 
 /* Admin content (session list view) */
@@ -766,4 +766,775 @@
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   flex: 1;
+}
+
+/* ===================================
+   Session List Styles (Admin Panel)
+   =================================== */
+
+.session-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+
+.session-item:hover {
+  border-color: #6366f1;
+}
+
+.session-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+
+.session-info strong {
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+}
+
+.session-meta {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+/* ===================================
+   Status Badge Styles
+   =================================== */
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-lobby {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-finished {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* ===================================
+   Semantic Button Colors
+   =================================== */
+
+/* Green - Positive actions (Create, Start, Add, Export, Edit, Spectate) */
+.admin-view button.primary,
+.admin-view .create-session-btn {
+  background: #10b981;
+}
+
+.admin-view button.primary:hover,
+.admin-view .create-session-btn:hover {
+  background: #059669;
+}
+
+.admin-view button.primary:disabled {
+  background: #ccc;
+}
+
+/* Red - Destructive actions (Delete, Remove) */
+.delete-btn {
+  background: #ef4444;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+}
+
+/* Session list delete button - red circle */
+.session-item .delete-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ===================================
+   Question List Base Styles
+   =================================== */
+
+.question-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.question-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.question-item.current {
+  border-color: #6366f1;
+  background: #f0f0ff;
+}
+
+.question-item.editing {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.question-number {
+  font-weight: bold;
+  color: #6b7280;
+  min-width: 24px;
+}
+
+.question-text {
+  flex: 1;
+}
+
+.question-options {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.question-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.question-actions button {
+  padding: 4px 12px;
+  font-size: 0.85rem;
+}
+
+/* Edit button in question actions - green */
+.question-actions button:not(.delete-btn) {
+  background: #10b981;
+}
+
+.question-actions button:not(.delete-btn):hover {
+  background: #059669;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.remove-option {
+  background: #9ca3af;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  min-width: auto;
+}
+
+.remove-option:hover {
+  background: #6b7280;
+}
+
+/* ===================================
+   Form Styles
+   =================================== */
+
+.add-question-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.option-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.option-row input[type="text"] {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.option-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+/* "+ Add Option" button - yellow/amber */
+.add-question-form > button[type="button"],
+.question-item.editing > button[type="button"] {
+  background: #f59e0b;
+}
+
+.add-question-form > button[type="button"]:hover,
+.question-item.editing > button[type="button"]:hover {
+  background: #d97706;
+}
+
+/* "Add Question" submit button - green */
+.add-question-form > button[type="submit"] {
+  background: #10b981;
+}
+
+.add-question-form > button[type="submit"]:hover {
+  background: #059669;
+}
+
+/* ===================================
+   Question Reorder Buttons
+   =================================== */
+
+.question-reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reorder-btn {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  min-width: auto;
+  background: #e5e7eb;
+  color: #374151;
+  line-height: 1;
+}
+
+.reorder-btn:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.reorder-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: #e5e7eb;
+}
+
+/* ===================================
+   Toggle Switch
+   =================================== */
+
+.toggle-btn {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  min-width: auto;
+}
+
+.toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-track {
+  display: block;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #d1d5db;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.toggle-enabled .toggle-track {
+  background: #10b981;
+}
+
+.toggle-disabled .toggle-track {
+  background: #9ca3af;
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-enabled .toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* ===================================
+   Disabled / Completed Question Styles
+   =================================== */
+
+.question-item.disabled {
+  opacity: 0.5;
+  background: #f3f4f6;
+}
+
+.question-item.disabled .question-text {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.question-item.completed {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.question-item.completed .question-text {
+  color: #166534;
+}
+
+.completed-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* ===================================
+   Question Actions Toolbar
+   =================================== */
+
+.question-actions-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.export-button,
+.import-button {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-button:hover,
+.import-button:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.ai-question-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.ai-question-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* ===================================
+   Category Selector Styles
+   =================================== */
+
+.category-selector {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.category-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.category-selector-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #334155;
+}
+
+.category-selector-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.category-action-btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 6px;
+}
+
+.category-action-btn:hover {
+  background: #cbd5e1;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.category-chip:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+}
+
+.category-chip.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.category-chip input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #6366f1;
+}
+
+.category-label {
+  flex: 1;
+  color: #334155;
+}
+
+.category-count {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.category-generator-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.question-count-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.question-count-control label {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.question-count-control input {
+  width: 70px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1rem;
+  text-align: center;
+}
+
+/* "Generate New Questions" button - green */
+.regenerate-button {
+  padding: 10px 20px;
+  font-size: 0.95rem;
+}
+
+.regenerate-button.primary {
+  background: #10b981;
+}
+
+.regenerate-button.primary:hover {
+  background: #059669;
+}
+
+.regenerate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.category-help-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  flex: 1;
+  text-align: right;
+}
+
+/* ===================================
+   Host Action Button (used in Admin)
+   =================================== */
+
+.host-action-section {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.host-action-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.host-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+.host-action-button {
+  min-width: 280px;
+  min-height: 60px;
+  padding: 16px 32px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3),
+              0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.host-action-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.host-action-button:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.host-action-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4),
+              0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.host-action-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3),
+              0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.host-action-button:disabled {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.host-action-button.loading {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  cursor: wait;
+}
+
+.host-action-button.destructive {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3),
+              0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.host-action-button.destructive:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4),
+              0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes host-action-pulse {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4),
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                0 0 0 8px rgba(16, 185, 129, 0);
+  }
+}
+
+.host-action-button:not(:disabled):not(.loading) {
+  animation: host-action-pulse 2s ease-in-out infinite;
+}
+
+.host-action-button:hover:not(:disabled):not(.loading) {
+  animation: none;
+}
+
+/* Host Back Button */
+.host-back-button {
+  min-width: 140px;
+  min-height: 60px;
+  padding: 16px 24px;
+  font-size: 1rem;
+  font-weight: 500;
+  background: transparent;
+  color: #94a3b8;
+  border: 2px solid #475569;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.host-back-button:hover:not(:disabled) {
+  background: rgba(71, 85, 105, 0.3);
+  color: #e2e8f0;
+  border-color: #64748b;
+}
+
+.host-back-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.host-back-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.host-back-button.loading {
+  cursor: wait;
+}
+
+.host-back-button.destructive {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: #dc2626;
+}
+
+.host-back-button.destructive:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  border-color: #ef4444;
+}
+
+/* Keyboard hint */
+.host-action-hint {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.host-action-hint kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-family: monospace;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #e2e8f0;
+}
+
+/* Mobile responsive for host action buttons */
+@media (max-width: 500px) {
+  .host-action-buttons {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .host-action-button {
+    min-width: 0;
+    flex: 2;
+    padding: 16px 16px;
+    font-size: 1.1rem;
+  }
+
+  .host-back-button {
+    min-width: 0;
+    flex: 1;
+    padding: 16px 12px;
+    font-size: 0.9rem;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .host-action-hint {
+    font-size: 0.7rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
 }
