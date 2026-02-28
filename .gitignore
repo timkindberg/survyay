@@ -39,3 +39,4 @@ test-results/
 playwright-report/
 .vercel
 .env*.local
+screenshots/

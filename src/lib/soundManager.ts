@@ -44,6 +44,19 @@ const state: SoundManagerState = {
 const muteListeners = new Set<(muted: boolean) => void>();
 
 /**
+ * Reset the sound manager state. Useful for testing.
+ */
+export function cleanup(): void {
+  if (state.audioContext) {
+    state.audioContext.close().catch(() => {});
+    state.audioContext = null;
+  }
+  state.isMuted = loadMuteState();
+  state.isInitialized = false;
+  muteListeners.clear();
+}
+
+/**
  * Load mute state from localStorage
  */
 function loadMuteState(): boolean {

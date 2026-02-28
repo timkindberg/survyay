@@ -8,72 +8,75 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-  };
-})();
-
-// Mock AudioContext
-class MockOscillator {
-  connect() { return this; }
-  start() {}
-  stop() {}
-  frequency = { setValueAtTime() {}, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {} };
-  type = "sine";
-}
-
-class MockGainNode {
-  connect() { return this; }
-  gain = { setValueAtTime() {}, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {} };
-}
-
-class MockBiquadFilterNode {
-  connect() { return this; }
-  frequency = { setValueAtTime() {}, exponentialRampToValueAtTime() {} };
-  type = "lowpass";
-}
-
-class MockAudioBufferSourceNode {
-  connect() { return this; }
-  start() {}
-  buffer: AudioBuffer | null = null;
-}
-
-class MockAudioContext {
-  state = "running";
-  currentTime = 0;
-  sampleRate = 44100;
-  destination = {};
-  createOscillator() { return new MockOscillator(); }
-  createGain() { return new MockGainNode(); }
-  createBiquadFilter() { return new MockBiquadFilterNode(); }
-  createBufferSource() { return new MockAudioBufferSourceNode(); }
-  createBuffer(channels: number, length: number, sampleRate: number) {
+// Mocks must be hoisted above imports — vi.hoisted runs before module evaluation
+const { localStorageMock, MockAudioContext } = vi.hoisted(() => {
+  const localStorageMock = (() => {
+    let store: Record<string, string> = {};
     return {
-      getChannelData: () => new Float32Array(length),
-    } as unknown as AudioBuffer;
-  }
-  resume() { return Promise.resolve(); }
-  close() { return Promise.resolve(); }
-}
+      getItem: (key: string) => store[key] || null,
+      setItem: (key: string, value: string) => {
+        store[key] = value;
+      },
+      removeItem: (key: string) => {
+        delete store[key];
+      },
+      clear: () => {
+        store = {};
+      },
+    };
+  })();
 
-// Setup mocks before importing the module
+  class MockOscillator {
+    connect() { return this; }
+    start() {}
+    stop() {}
+    frequency = { setValueAtTime() {}, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {} };
+    type = "sine";
+  }
+
+  class MockGainNode {
+    connect() { return this; }
+    gain = { setValueAtTime() {}, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {} };
+  }
+
+  class MockBiquadFilterNode {
+    connect() { return this; }
+    frequency = { setValueAtTime() {}, exponentialRampToValueAtTime() {} };
+    type = "lowpass";
+  }
+
+  class MockAudioBufferSourceNode {
+    connect() { return this; }
+    start() {}
+    buffer: AudioBuffer | null = null;
+  }
+
+  class MockAudioContext {
+    state = "running";
+    currentTime = 0;
+    sampleRate = 44100;
+    destination = {};
+    createOscillator() { return new MockOscillator(); }
+    createGain() { return new MockGainNode(); }
+    createBiquadFilter() { return new MockBiquadFilterNode(); }
+    createBufferSource() { return new MockAudioBufferSourceNode(); }
+    createBuffer(channels: number, length: number, sampleRate: number) {
+      return {
+        getChannelData: () => new Float32Array(length),
+      } as unknown as AudioBuffer;
+    }
+    resume() { return Promise.resolve(); }
+    close() { return Promise.resolve(); }
+  }
+
+  return { localStorageMock, MockAudioContext };
+});
+
+// These run in hoisted order, before the import below
 vi.stubGlobal("localStorage", localStorageMock);
 vi.stubGlobal("AudioContext", MockAudioContext);
 
-// Now import the module
+// Now the import sees the mocked globals during module evaluation
 import {
   isMuted,
   setMuted,
