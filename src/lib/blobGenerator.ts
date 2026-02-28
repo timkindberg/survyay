@@ -93,6 +93,15 @@ function pick<T>(arr: readonly T[], random: () => number): T {
 }
 
 /**
+ * Get a display-safe name: trimmed and truncated with ellipsis if over 10 chars
+ */
+export function getDisplayName(name: string, maxLength = 10): string {
+  const trimmed = name.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return trimmed.slice(0, maxLength - 1) + "…";
+}
+
+/**
  * Generate a blob config from a player name
  */
 export function generateBlob(name: string): BlobConfig {
