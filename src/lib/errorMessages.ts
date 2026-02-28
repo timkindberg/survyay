@@ -88,3 +88,16 @@ export function getFriendlyErrorMessage(error: unknown): string {
   // Otherwise, return the original message (it might already be readable)
   return rawMessage;
 }
+
+/**
+ * Creates a timestamped error state object from an error.
+ * Useful for storing error state in React components.
+ */
+export function createErrorState(error: unknown): { message: string; timestamp: number } {
+  return {
+    message: getFriendlyErrorMessage(error),
+    timestamp: Date.now(),
+  };
+}
+
+
